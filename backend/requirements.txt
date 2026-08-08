@@ -1,8 +1,5 @@
 fastapi
 uvicorn[standard]
 supabase
-python-dotenv
-httpx
 pydantic
-requests
-beautifulsoup4
+python-dotenv
