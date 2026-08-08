@@ -839,3 +839,99 @@ def inspect_ppac(
             status_code=500,
             detail=str(error)
         )
+ # ============================================================
+# AUTOMATIC FUEL PRICE FETCHER - V1
+# READ-ONLY
+# ============================================================
+
+IOCL_PRICE_URL = "https://www.iocl.com/petrol-diesel-price"
+
+
+def fetch_iocl_fuel_prices():
+    """
+    Fetch petrol and diesel prices from the official
+    IndianOil petrol/diesel price page.
+
+    READ-ONLY:
+    This function does not modify the database.
+    """
+
+    try:
+        response = requests.get(
+            IOCL_PRICE_URL,
+            timeout=30,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 "
+                    "(Fare Keralam official data updater)"
+                )
+            }
+        )
+
+        response.raise_for_status()
+
+        soup = BeautifulSoup(
+            response.text,
+            "html.parser"
+        )
+
+        page_text = soup.get_text(
+            " ",
+            strip=True
+        )
+
+        return {
+            "success": True,
+            "source": IOCL_PRICE_URL,
+            "page_size": len(response.text),
+            "page_title": (
+                soup.title.get_text(strip=True)
+                if soup.title
+                else None
+            ),
+            "contains_petrol": "Petrol" in page_text,
+            "contains_diesel": "Diesel" in page_text,
+            "message": (
+                "IndianOil page successfully reached. "
+                "Price extraction will be added after "
+                "the page structure is verified."
+            )
+        }
+
+    except requests.RequestException as error:
+
+        raise HTTPException(
+            status_code=502,
+            detail=f"IndianOil request failed: {str(error)}"
+        )
+
+    except Exception as error:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
+
+
+@app.get("/api/admin/test-iocl")
+def test_iocl(
+    token: str = Query(...)
+):
+    """
+    Read-only IndianOil connection test.
+    Does NOT write to the database.
+    """
+
+    if not UPDATE_TOKEN:
+        raise HTTPException(
+            status_code=500,
+            detail="FUEL_UPDATE_TOKEN is not configured"
+        )
+
+    if token != UPDATE_TOKEN:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid update token"
+        )
+
+    return fetch_iocl_fuel_prices()       
