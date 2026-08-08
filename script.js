@@ -1,30 +1,29 @@
 /* ============================================================
-   FARE KERALAM - FRONTEND API ENGINE
+   FARE KERALAM - UPDATED FRONTEND SCRIPT
    ============================================================
-   Connects the polished frontend to:
-
-   Render API:
+   Backend:
    https://farekeralam.onrender.com
 
-   Main endpoints:
+   API:
    GET  /api/categories
    GET  /api/energy-sources
    GET  /api/vehicles
    GET  /api/vehicle-options
+   GET  /api/health
    POST /api/fare/calculate
 
    IMPORTANT:
-   - No fake universal fare
-   - No hard-coded vehicle fare
-   - Fare comes from backend/database
-   - Vehicle/category/fuel selection is respected
+   - No hard-coded fare calculation
+   - Fare always comes from the backend/database
+   - Frontend only collects user input and displays API results
    ============================================================ */
 
 "use strict";
 
+
 /* ============================================================
    CONFIGURATION
-   ============================================================ */
+============================================================ */
 
 const API_BASE_URL = "https://farekeralam.onrender.com/api";
 
@@ -40,7 +39,7 @@ const API = {
 
 /* ============================================================
    APPLICATION STATE
-   ============================================================ */
+============================================================ */
 
 const state = {
     categories: [],
@@ -60,7 +59,7 @@ const state = {
 
 /* ============================================================
    DOM HELPERS
-   ============================================================ */
+============================================================ */
 
 function $(selector) {
     return document.querySelector(selector);
@@ -70,140 +69,70 @@ function $all(selector) {
     return [...document.querySelectorAll(selector)];
 }
 
-function findElement(...selectors) {
-    for (const selector of selectors) {
-        const element = document.querySelector(selector);
-
-        if (element) {
-            return element;
-        }
-    }
-
-    return null;
-}
-
 
 /* ============================================================
-   COMMON ELEMENT LOOKUP
-   ============================================================ */
+   DOM ELEMENTS
+============================================================ */
 
 const elements = {
-    category: findElement(
-        "#category",
-        "#vehicleCategory",
-        "#vehicle-category",
-        "#categorySelect",
-        '[name="category"]'
-    ),
+    pageLoader: $("#pageLoader"),
 
-    energy: findElement(
-        "#energy",
-        "#energySource",
-        "#energy-source",
-        "#fuel",
-        "#fuelType",
-        "#fuel-type",
-        '[name="energy_source"]',
-        '[name="energy"]'
-    ),
+    header: $("#siteHeader"),
 
-    vehicle: findElement(
-        "#vehicle",
-        "#vehicleModel",
-        "#vehicle-model",
-        "#vehicleSelect",
-        '[name="vehicle"]',
-        '[name="vehicle_id"]'
-    ),
+    mobileMenuBtn: $("#mobileMenuBtn"),
+    mainNav: $("#mainNav"),
 
-    seating: findElement(
-        "#seating",
-        "#seatingCapacity",
-        "#seating-capacity",
-        "#capacity",
-        '[name="seating_capacity"]'
-    ),
+    fareForm: $("#fareForm"),
 
-    distance: findElement(
-        "#distance",
-        "#distanceKm",
-        "#distance-km",
-        "#distanceInput",
-        '[name="distance_km"]'
-    ),
+    category: $("#category"),
+    energy: $("#energy"),
+    vehicle: $("#vehicle"),
+    seating: $("#seating"),
+    distance: $("#distance"),
 
-    calculateButton: findElement(
-        "#calculateFare",
-        "#calculate-fare",
-        "#calculateBtn",
-        "#calculate",
-        '[data-action="calculate"]'
-    ),
+    vehicleGroup: $("#vehicleGroup"),
+    seatingGroup: $("#seatingGroup"),
 
-    fare: findElement(
-        "#fare",
-        "#fareAmount",
-        "#fare-amount",
-        "#resultFare",
-        "#totalFare",
-        ".fare-amount",
-        '[data-fare]'
-    ),
+    calculateBtn: $("#calculateBtn"),
 
-    result: findElement(
-        "#result",
-        "#fareResult",
-        "#fare-result",
-        ".fare-result",
-        ".result-card"
-    ),
+    resultCard: $("#resultCard"),
+    resultEmpty: $("#resultEmpty"),
+    resultSuccess: $("#resultSuccess"),
+    resultError: $("#resultError"),
 
-    resultVehicle: findElement(
-        "#resultVehicle",
-        "#result-vehicle",
-        '[data-result="vehicle"]'
-    ),
+    fareAmount: $("#fareAmount"),
 
-    resultCategory: findElement(
-        "#resultCategory",
-        "#result-category",
-        '[data-result="category"]'
-    ),
+    resultCategory: $("#resultCategory"),
+    resultEnergy: $("#resultEnergy"),
+    resultDistance: $("#resultDistance"),
+    resultSeats: $("#resultSeats"),
 
-    resultDistance: findElement(
-        "#resultDistance",
-        "#result-distance",
-        '[data-result="distance"]'
-    ),
+    calculationMethod: $("#calculationMethod"),
+    fareRuleNote: $("#fareRuleNote"),
 
-    resultMethod: findElement(
-        "#resultMethod",
-        "#result-method",
-        '[data-result="method"]'
-    ),
+    resetBtn: $("#resetBtn"),
+    retryBtn: $("#retryBtn"),
 
-    error: findElement(
-        "#error",
-        "#errorMessage",
-        "#error-message",
-        ".error-message"
-    ),
+    errorMessage: $("#errorMessage"),
 
-    loading: findElement(
-        "#loading",
-        "#loadingScreen",
-        ".loading-screen"
-    )
+    footerStatus: $("#footerStatus"),
+    currentYear: $("#currentYear"),
+
+    categoryCount: $("#categoryCount"),
+    energyCount: $("#energyCount"),
+    vehicleCount: $("#vehicleCount"),
+    vehicleCountStat: $("#vehicleCountStat"),
+
+    toast: $("#toast"),
+    toastMessage: $("#toastMessage")
 };
 
 
 /* ============================================================
    INITIALIZATION
-   ============================================================ */
+============================================================ */
 
 document.addEventListener("DOMContentLoaded", () => {
-
-    console.log("Fare Keralam frontend starting...");
 
     initializeApplication();
 
@@ -212,9 +141,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function initializeApplication() {
 
-    showLoading(true);
+    setCurrentYear();
+
+    setupNavigation();
+
+    setupEventListeners();
+
+    setupDistanceInput();
+
+    showResultEmpty();
 
     try {
+
+        showPageLoader(true);
+
+        await checkAPIHealth();
 
         await loadCategories();
 
@@ -222,187 +163,265 @@ async function initializeApplication() {
 
         await loadVehicles();
 
-        setupEventListeners();
-
-        setupNavigation();
-
-        setupDistanceInput();
+        updateStatistics();
 
         setupInitialUI();
 
-        console.log("Fare Keralam frontend ready.");
+        setFooterStatus(
+            "API connected",
+            true
+        );
+
+        console.log(
+            "Fare Keralam frontend initialized successfully."
+        );
 
     } catch (error) {
 
         console.error(
-            "Fare Keralam initialization failed:",
+            "Fare Keralam initialization error:",
             error
         );
 
-        showError(
-            "Unable to connect to Fare Keralam server. Please try again."
+        setFooterStatus(
+            "API unavailable",
+            false
+        );
+
+        showToast(
+            "Unable to load Fare Keralam data."
         );
 
     } finally {
 
-        showLoading(false);
+        setTimeout(() => {
+            showPageLoader(false);
+        }, 500);
 
     }
+
 }
 
 
 /* ============================================================
    API REQUEST HELPER
-   ============================================================ */
+============================================================ */
 
 async function apiRequest(url, options = {}) {
 
-    const response = await fetch(url, {
+    const requestOptions = {
         ...options,
         headers: {
             "Accept": "application/json",
-            "Content-Type": "application/json",
+            ...(options.body
+                ? {
+                    "Content-Type":
+                        "application/json"
+                }
+                : {}),
             ...(options.headers || {})
         }
-    });
+    };
+
+    const response =
+        await fetch(
+            url,
+            requestOptions
+        );
 
     let data = null;
 
     try {
-        data = await response.json();
+
+        data =
+            await response.json();
+
     } catch {
+
         data = null;
+
     }
 
     if (!response.ok) {
 
-        let message = "Server request failed.";
+        let message =
+            "Server request failed.";
 
         if (data?.detail) {
 
-            if (typeof data.detail === "string") {
-                message = data.detail;
-            }
+            if (
+                typeof data.detail ===
+                "string"
+            ) {
 
-            else if (typeof data.detail === "object") {
+                message =
+                    data.detail;
+
+            } else if (
+                typeof data.detail ===
+                "object"
+            ) {
+
                 message =
                     data.detail.message ||
-                    "Unable to complete the request.";
+                    data.detail.detail ||
+                    message;
+
             }
+
         }
 
         throw new Error(message);
+
     }
 
     return data;
+
+}
+
+
+/* ============================================================
+   API HEALTH
+============================================================ */
+
+async function checkAPIHealth() {
+
+    try {
+
+        const data =
+            await apiRequest(
+                API.health
+            );
+
+        console.log(
+            "API health:",
+            data
+        );
+
+        if (
+            data &&
+            data.status === "healthy"
+        ) {
+
+            setFooterStatus(
+                "API online",
+                true
+            );
+
+        }
+
+        return data;
+
+    } catch (error) {
+
+        console.warn(
+            "Health check failed:",
+            error
+        );
+
+        throw error;
+
+    }
+
 }
 
 
 /* ============================================================
    LOAD CATEGORIES
-   ============================================================ */
+============================================================ */
 
 async function loadCategories() {
 
-    const data = await apiRequest(API.categories);
+    const data =
+        await apiRequest(
+            API.categories
+        );
 
-    state.categories = data.categories || [];
+    state.categories =
+        Array.isArray(
+            data.categories
+        )
+            ? data.categories
+            : [];
 
     console.log(
-        "Categories loaded:",
+        "Categories:",
         state.categories
     );
 
     populateCategorySelect();
+
 }
 
 
 /* ============================================================
    LOAD ENERGY SOURCES
-   ============================================================ */
+============================================================ */
 
 async function loadEnergySources() {
 
-    try {
-
-        const data = await apiRequest(
+    const data =
+        await apiRequest(
             API.energySources
         );
 
-        state.energySources =
-            data.energy_sources || [];
+    state.energySources =
+        Array.isArray(
+            data.energy_sources
+        )
+            ? data.energy_sources
+            : [];
 
-        console.log(
-            "Energy sources loaded:",
-            state.energySources
-        );
+    console.log(
+        "Energy sources:",
+        state.energySources
+    );
 
-        populateEnergySelect();
+    populateEnergySelect();
 
-    } catch (error) {
-
-        console.warn(
-            "Energy source endpoint unavailable:",
-            error
-        );
-
-        /*
-         * Fallback names are only used for the dropdown.
-         * They are NOT used to calculate fares.
-         */
-
-        state.energySources = [
-            { id: 1, name: "Petrol" },
-            { id: 2, name: "Diesel" },
-            { id: 3, name: "CNG" },
-            { id: 4, name: "Electricity" },
-            { id: 5, name: "Hybrid" }
-        ];
-
-        populateEnergySelect();
-    }
 }
 
 
 /* ============================================================
    LOAD VEHICLES
-   ============================================================ */
+============================================================ */
 
 async function loadVehicles() {
 
-    const data = await apiRequest(
-        API.vehicles
-    );
+    const data =
+        await apiRequest(
+            API.vehicles
+        );
 
     state.vehicles =
-        data.vehicles || [];
+        Array.isArray(
+            data.vehicles
+        )
+            ? data.vehicles
+            : [];
 
     console.log(
-        `Loaded ${state.vehicles.length} vehicles.`
+        "Vehicles:",
+        state.vehicles
     );
 
     populateVehicleSelect();
+
 }
 
 
 /* ============================================================
    CATEGORY DROPDOWN
-   ============================================================ */
+============================================================ */
 
 function populateCategorySelect() {
 
-    const select = elements.category;
+    const select =
+        elements.category;
 
     if (!select) {
-
-        console.warn(
-            "Category select not found."
-        );
-
         return;
     }
-
-    const currentValue = select.value;
 
     select.innerHTML = "";
 
@@ -411,52 +430,51 @@ function populateCategorySelect() {
         "Select vehicle category"
     );
 
-    state.categories.forEach(category => {
+    state.categories.forEach(
+        category => {
 
-        const option =
-            document.createElement("option");
+            const option =
+                document.createElement(
+                    "option"
+                );
 
-        option.value = category.name;
+            option.value =
+                category.name;
 
-        option.textContent = category.name;
+            option.textContent =
+                category.name;
 
-        option.dataset.categoryId =
-            category.id;
+            option.dataset.id =
+                category.id;
 
-        option.dataset.requiresModel =
-            category.requires_model;
+            option.dataset.requiresModel =
+                category.requires_model;
 
-        option.dataset.requiresSeating =
-            category.requires_seating_capacity;
+            option.dataset.requiresSeating =
+                category.requires_seating_capacity;
 
-        select.appendChild(option);
-    });
+            select.appendChild(
+                option
+            );
 
-    if (currentValue) {
-        select.value = currentValue;
-    }
+        }
+    );
 
 }
 
 
 /* ============================================================
    ENERGY DROPDOWN
-   ============================================================ */
+============================================================ */
 
 function populateEnergySelect() {
 
-    const select = elements.energy;
+    const select =
+        elements.energy;
 
     if (!select) {
-
-        console.warn(
-            "Energy select not found."
-        );
-
         return;
     }
-
-    const currentValue = select.value;
 
     select.innerHTML = "";
 
@@ -465,91 +483,117 @@ function populateEnergySelect() {
         "Select fuel / energy"
     );
 
-    state.energySources.forEach(energy => {
+    state.energySources.forEach(
+        energy => {
 
-        const option =
-            document.createElement("option");
+            const option =
+                document.createElement(
+                    "option"
+                );
 
-        option.value = energy.name;
+            option.value =
+                energy.name;
 
-        option.textContent = energy.name;
+            option.textContent =
+                energy.name;
 
-        option.dataset.energyId =
-            energy.id;
+            option.dataset.id =
+                energy.id;
 
-        select.appendChild(option);
-    });
+            select.appendChild(
+                option
+            );
 
-    if (currentValue) {
-        select.value = currentValue;
-    }
+        }
+    );
 
 }
 
 
 /* ============================================================
    VEHICLE DROPDOWN
-   ============================================================ */
+============================================================ */
 
 function populateVehicleSelect() {
 
-    const select = elements.vehicle;
+    const select =
+        elements.vehicle;
 
     if (!select) {
-
-        console.warn(
-            "Vehicle select not found."
-        );
-
         return;
     }
 
-    const filtered =
+    const filteredVehicles =
         getFilteredVehicles();
 
     select.innerHTML = "";
 
+    if (filteredVehicles.length === 0) {
+
+        addPlaceholder(
+            select,
+            "No matching vehicle"
+        );
+
+        return;
+
+    }
+
     addPlaceholder(
         select,
-        filtered.length
-            ? "Select vehicle"
-            : "No matching vehicles"
+        "Select vehicle model"
     );
 
-    filtered.forEach(vehicle => {
+    filteredVehicles.forEach(
+        vehicle => {
 
-        const option =
-            document.createElement("option");
+            const option =
+                document.createElement(
+                    "option"
+                );
 
-        option.value = vehicle.id;
+            option.value =
+                vehicle.id;
 
-        option.textContent =
-            buildVehicleLabel(vehicle);
+            option.textContent =
+                buildVehicleLabel(
+                    vehicle
+                );
 
-        option.dataset.vehicleId =
-            vehicle.id;
+            option.dataset.vehicleId =
+                vehicle.id;
 
-        option.dataset.categoryId =
-            vehicle.category_id;
+            option.dataset.categoryId =
+                vehicle.category_id;
 
-        option.dataset.energyId =
-            vehicle.energy_source_id;
+            option.dataset.energyId =
+                vehicle.energy_source_id;
 
-        if (vehicle.seating_capacity !== null) {
+            if (
+                vehicle.seating_capacity !==
+                null &&
+                vehicle.seating_capacity !==
+                undefined
+            ) {
 
-            option.dataset.seating =
-                vehicle.seating_capacity;
+                option.dataset.seating =
+                    vehicle.seating_capacity;
+
+            }
+
+            select.appendChild(
+                option
+            );
+
         }
-
-        select.appendChild(option);
-    });
+    );
 
 }
 
 
 /* ============================================================
    FILTER VEHICLES
-   ============================================================ */
+============================================================ */
 
 function getFilteredVehicles() {
 
@@ -568,90 +612,127 @@ function getFilteredVehicles() {
     if (category) {
 
         vehicles =
-            vehicles.filter(vehicle =>
-                Number(vehicle.category_id) ===
-                Number(category.id)
+            vehicles.filter(
+                vehicle =>
+                    Number(
+                        vehicle.category_id
+                    ) ===
+                    Number(
+                        category.id
+                    )
             );
+
     }
 
     if (energy) {
 
         vehicles =
-            vehicles.filter(vehicle =>
-                Number(vehicle.energy_source_id) ===
-                Number(energy.id)
+            vehicles.filter(
+                vehicle =>
+                    Number(
+                        vehicle.energy_source_id
+                    ) ===
+                    Number(
+                        energy.id
+                    )
             );
+
     }
 
     if (seating !== null) {
 
         vehicles =
-            vehicles.filter(vehicle => {
+            vehicles.filter(
+                vehicle => {
 
-                if (
-                    vehicle.seating_capacity ===
-                    null
-                ) {
-                    return true;
+                    if (
+                        vehicle.seating_capacity ===
+                        null ||
+                        vehicle.seating_capacity ===
+                        undefined
+                    ) {
+
+                        return true;
+
+                    }
+
+                    return Number(
+                        vehicle.seating_capacity
+                    ) ===
+                    Number(seating);
+
                 }
+            );
 
-                return Number(
-                    vehicle.seating_capacity
-                ) === Number(seating);
-
-            });
     }
 
     return vehicles;
+
 }
 
 
 /* ============================================================
    VEHICLE LABEL
-   ============================================================ */
+============================================================ */
 
-function buildVehicleLabel(vehicle) {
+function buildVehicleLabel(
+    vehicle
+) {
 
     let label =
-        vehicle.name || "Vehicle";
+        vehicle.name ||
+        "Vehicle";
 
     if (
-        vehicle.seating_capacity !== null &&
-        vehicle.seating_capacity !== undefined
+        vehicle.seating_capacity !==
+        null &&
+        vehicle.seating_capacity !==
+        undefined
     ) {
 
         label +=
             ` — ${vehicle.seating_capacity} seats`;
+
     }
 
     return label;
+
 }
 
 
 /* ============================================================
    PLACEHOLDER
-   ============================================================ */
+============================================================ */
 
-function addPlaceholder(select, text) {
+function addPlaceholder(
+    select,
+    text
+) {
 
     const option =
-        document.createElement("option");
+        document.createElement(
+            "option"
+        );
 
     option.value = "";
 
-    option.textContent = text;
+    option.textContent =
+        text;
 
     option.disabled = true;
 
     option.selected = true;
 
-    select.appendChild(option);
+    select.appendChild(
+        option
+    );
+
 }
 
 
 /* ============================================================
    EVENT LISTENERS
-   ============================================================ */
+============================================================ */
 
 function setupEventListeners() {
 
@@ -661,6 +742,7 @@ function setupEventListeners() {
             "change",
             handleCategoryChange
         );
+
     }
 
     if (elements.energy) {
@@ -669,6 +751,7 @@ function setupEventListeners() {
             "change",
             handleEnergyChange
         );
+
     }
 
     if (elements.seating) {
@@ -677,6 +760,7 @@ function setupEventListeners() {
             "change",
             handleSeatingChange
         );
+
     }
 
     if (elements.vehicle) {
@@ -685,144 +769,193 @@ function setupEventListeners() {
             "change",
             handleVehicleChange
         );
+
     }
 
-    if (elements.calculateButton) {
+    if (elements.fareForm) {
 
-        elements.calculateButton.addEventListener(
-            "click",
-            calculateFare
-        );
-    }
-
-    /*
-     * Also support forms.
-     */
-
-    $all("form").forEach(form => {
-
-        form.addEventListener(
+        elements.fareForm.addEventListener(
             "submit",
             event => {
 
+                event.preventDefault();
+
+                calculateFare();
+
+            }
+        );
+
+    }
+
+    if (elements.calculateBtn) {
+
+        elements.calculateBtn.addEventListener(
+            "click",
+            event => {
+
+                /*
+                 * If the button is inside the form,
+                 * the submit listener handles it.
+                 */
+
                 if (
-                    form.querySelector(
-                        "#distance, #distanceKm, #distance-km"
-                    )
+                    !elements.fareForm
                 ) {
 
                     event.preventDefault();
 
                     calculateFare();
+
                 }
 
             }
         );
-    });
+
+    }
+
+    if (elements.resetBtn) {
+
+        elements.resetBtn.addEventListener(
+            "click",
+            resetCalculator
+        );
+
+    }
+
+    if (elements.retryBtn) {
+
+        elements.retryBtn.addEventListener(
+            "click",
+            calculateFare
+        );
+
+    }
 
 }
 
 
 /* ============================================================
    CATEGORY CHANGE
-   ============================================================ */
+============================================================ */
 
 function handleCategoryChange() {
 
     state.selectedCategory =
-        elements.category?.value || null;
+        elements.category?.value ||
+        null;
 
-    state.selectedVehicle = null;
+    state.selectedVehicle =
+        null;
+
+    state.selectedSeating =
+        null;
 
     updateCategoryRequirements();
 
-    populateVehicleSelect();
-
     updateSeatingOptions();
+
+    populateVehicleSelect();
 
     clearFareResult();
 
-    console.log(
-        "Category:",
-        state.selectedCategory
-    );
 }
 
 
 /* ============================================================
    ENERGY CHANGE
-   ============================================================ */
+============================================================ */
 
 function handleEnergyChange() {
 
     state.selectedEnergy =
-        elements.energy?.value || null;
+        elements.energy?.value ||
+        null;
 
-    state.selectedVehicle = null;
+    state.selectedVehicle =
+        null;
 
     populateVehicleSelect();
 
     clearFareResult();
 
-    console.log(
-        "Energy:",
-        state.selectedEnergy
-    );
 }
 
 
 /* ============================================================
    SEATING CHANGE
-   ============================================================ */
+============================================================ */
 
 function handleSeatingChange() {
 
     state.selectedSeating =
         getSelectedSeating();
 
-    state.selectedVehicle = null;
+    state.selectedVehicle =
+        null;
 
     populateVehicleSelect();
 
     clearFareResult();
+
 }
 
 
 /* ============================================================
    VEHICLE CHANGE
-   ============================================================ */
+============================================================ */
 
 function handleVehicleChange() {
 
     const vehicleId =
-        Number(elements.vehicle?.value);
+        Number(
+            elements.vehicle?.value
+        );
 
     if (!vehicleId) {
 
-        state.selectedVehicle = null;
+        state.selectedVehicle =
+            null;
 
         return;
+
     }
 
     state.selectedVehicle =
         state.vehicles.find(
             vehicle =>
-                Number(vehicle.id) ===
-                vehicleId
+                Number(
+                    vehicle.id
+                ) === vehicleId
         ) || null;
 
-    console.log(
-        "Selected vehicle:",
+    /*
+     * Automatically use the vehicle's seating
+     * capacity when available.
+     */
+
+    if (
+        state.selectedVehicle &&
         state.selectedVehicle
-    );
+            .seating_capacity !==
+            null
+    ) {
+
+        state.selectedSeating =
+            Number(
+                state.selectedVehicle
+                    .seating_capacity
+            );
+
+    }
 
     clearFareResult();
+
 }
 
 
 /* ============================================================
    CATEGORY REQUIREMENTS
-   ============================================================ */
+============================================================ */
 
 function updateCategoryRequirements() {
 
@@ -830,39 +963,82 @@ function updateCategoryRequirements() {
         getSelectedCategoryObject();
 
     if (!category) {
+
+        setGroupVisible(
+            elements.vehicleGroup,
+            true
+        );
+
+        setGroupVisible(
+            elements.seatingGroup,
+            false
+        );
+
         return;
+
     }
+
+    const requiresModel =
+        Boolean(
+            category.requires_model
+        );
 
     const requiresSeating =
         Boolean(
             category.requires_seating_capacity
         );
 
+    setGroupVisible(
+        elements.vehicleGroup,
+        requiresModel
+    );
+
+    setGroupVisible(
+        elements.seatingGroup,
+        requiresSeating
+    );
+
+    if (elements.vehicle) {
+
+        elements.vehicle.required =
+            requiresModel;
+
+    }
+
     if (elements.seating) {
-
-        const wrapper =
-            elements.seating.closest(
-                ".form-group, .field, .input-group"
-            );
-
-        if (wrapper) {
-
-            wrapper.style.display =
-                requiresSeating
-                    ? ""
-                    : "none";
-        }
 
         elements.seating.required =
             requiresSeating;
+
     }
 
 }
 
 
 /* ============================================================
+   SET GROUP VISIBILITY
+============================================================ */
+
+function setGroupVisible(
+    element,
+    visible
+) {
+
+    if (!element) {
+        return;
+    }
+
+    element.style.display =
+        visible
+            ? ""
+            : "none";
+
+}
+
+
+/* ============================================================
    SEATING OPTIONS
-   ============================================================ */
+============================================================ */
 
 function updateSeatingOptions() {
 
@@ -876,87 +1052,102 @@ function updateSeatingOptions() {
     const category =
         getSelectedCategoryObject();
 
-    const requiresSeating =
-        category &&
-        category.requires_seating_capacity;
+    if (
+        !category ||
+        !category.requires_seating_capacity
+    ) {
 
-    if (!requiresSeating) {
+        select.innerHTML = "";
+
+        addPlaceholder(
+            select,
+            "Select seats"
+        );
 
         select.value = "";
 
-        state.selectedSeating = null;
+        state.selectedSeating =
+            null;
 
         return;
-    }
 
-    const categoryVehicles =
-        state.vehicles.filter(
-            vehicle =>
-                Number(vehicle.category_id) ===
-                Number(category.id)
-        );
+    }
 
     const capacities =
         [
             ...new Set(
-                categoryVehicles
+                state.vehicles
+                    .filter(
+                        vehicle =>
+                            Number(
+                                vehicle.category_id
+                            ) ===
+                            Number(
+                                category.id
+                            )
+                    )
                     .map(
                         vehicle =>
                             vehicle.seating_capacity
                     )
                     .filter(
-                        capacity =>
-                            capacity !== null &&
-                            capacity !== undefined
+                        value =>
+                            value !==
+                                null &&
+                            value !==
+                                undefined
                     )
             )
         ]
         .sort(
-            (a, b) => Number(a) - Number(b)
+            (a, b) =>
+                Number(a) -
+                Number(b)
         );
-
-    const current =
-        select.value;
 
     select.innerHTML = "";
 
     addPlaceholder(
         select,
-        "Select seating capacity"
+        "Select seats"
     );
 
-    capacities.forEach(capacity => {
+    capacities.forEach(
+        capacity => {
 
-        const option =
-            document.createElement("option");
+            const option =
+                document.createElement(
+                    "option"
+                );
 
-        option.value = capacity;
+            option.value =
+                capacity;
 
-        option.textContent =
-            `${capacity} seats`;
+            option.textContent =
+                `${capacity} seats`;
 
-        select.appendChild(option);
-    });
+            select.appendChild(
+                option
+            );
 
-    if (
-        current &&
-        capacities.includes(Number(current))
-    ) {
-
-        select.value = current;
-    }
+        }
+    );
 
 }
 
 
 /* ============================================================
    GET SELECTED CATEGORY
-   ============================================================ */
+============================================================ */
 
 function getSelectedCategoryObject() {
 
-    if (!elements.category?.value) {
+    if (
+        !elements.category?.value
+    ) {
+
         return null;
+
     }
 
     return state.categories.find(
@@ -964,17 +1155,22 @@ function getSelectedCategoryObject() {
             category.name ===
             elements.category.value
     ) || null;
+
 }
 
 
 /* ============================================================
    GET SELECTED ENERGY
-   ============================================================ */
+============================================================ */
 
 function getSelectedEnergyObject() {
 
-    if (!elements.energy?.value) {
+    if (
+        !elements.energy?.value
+    ) {
+
         return null;
+
     }
 
     return state.energySources.find(
@@ -982,60 +1178,40 @@ function getSelectedEnergyObject() {
             energy.name ===
             elements.energy.value
     ) || null;
+
 }
 
 
 /* ============================================================
-   GET SEATING
-   ============================================================ */
+   GET SELECTED SEATING
+============================================================ */
 
 function getSelectedSeating() {
 
-    if (!elements.seating?.value) {
+    if (
+        !elements.seating ||
+        !elements.seating.value
+    ) {
+
         return null;
-    }
 
-    const value =
-        Number(elements.seating.value);
-
-    return Number.isFinite(value)
-        ? value
-        : null;
-}
-
-
-/* ============================================================
-   GET DISTANCE
-   ============================================================ */
-
-function getDistance() {
-
-    if (!elements.distance) {
-        return null;
     }
 
     const value =
         Number(
-            String(
-                elements.distance.value
-            ).replace(",", ".")
+            elements.seating.value
         );
 
-    if (
-        !Number.isFinite(value) ||
-        value <= 0
-    ) {
+    return Number.isFinite(value)
+        ? value
+        : null;
 
-        return null;
-    }
-
-    return value;
 }
 
 
 /* ============================================================
-   FARE CALCULATION
-   ============================================================ */
+   CALCULATE FARE
+============================================================ */
 
 async function calculateFare() {
 
@@ -1052,134 +1228,121 @@ async function calculateFare() {
         getSelectedEnergyObject();
 
     const distance =
-        getDistance();
+        Number(
+            elements.distance?.value
+        );
 
     const seating =
         getSelectedSeating();
 
-    /*
-     * --------------------------------------------------------
-     * VALIDATION
-     * --------------------------------------------------------
-     */
+    const vehicleId =
+        Number(
+            elements.vehicle?.value
+        ) || null;
+
+
+    /* --------------------------------------------------------
+       VALIDATION
+    -------------------------------------------------------- */
 
     if (!category) {
 
-        showError(
+        showCalculationError(
             "Please select a vehicle category."
         );
 
-        focusElement(elements.category);
+        elements.category?.focus();
 
         return;
+
     }
+
 
     if (!energy) {
 
-        showError(
+        showCalculationError(
             "Please select a fuel or energy source."
         );
 
-        focusElement(elements.energy);
+        elements.energy?.focus();
 
         return;
+
     }
 
-    if (!distance) {
 
-        showError(
+    if (
+        !Number.isFinite(distance) ||
+        distance <= 0
+    ) {
+
+        showCalculationError(
             "Please enter a valid journey distance."
         );
 
-        focusElement(elements.distance);
+        elements.distance?.focus();
 
         return;
+
     }
+
 
     if (
         category.requires_seating_capacity &&
-        !seating
+        seating === null
     ) {
 
-        showError(
+        showCalculationError(
             "Please select the seating capacity."
         );
 
-        focusElement(elements.seating);
+        elements.seating?.focus();
 
         return;
+
     }
 
-    /*
-     * --------------------------------------------------------
-     * VEHICLE
-     * --------------------------------------------------------
-     */
 
-    const filteredVehicles =
-        getFilteredVehicles();
-
-    let vehicle =
-        state.selectedVehicle;
-
-    /*
-     * If the user did not explicitly choose a
-     * vehicle, use the first exact database
-     * match for the selected combination.
-     */
-
-    if (!vehicle && filteredVehicles.length) {
-
-        /*
-         * For categories requiring a model,
-         * selecting a specific vehicle is preferred.
-         */
-
-        if (category.requires_model) {
-
-            vehicle =
-                filteredVehicles[0];
-        }
-    }
-
-    /*
-     * --------------------------------------------------------
-     * BUILD REQUEST
-     * --------------------------------------------------------
-     */
+    /* --------------------------------------------------------
+       BUILD REQUEST
+    -------------------------------------------------------- */
 
     const requestBody = {
 
-        category: category.name,
+        category:
+            category.name,
 
-        energy_source: energy.name,
+        energy_source:
+            energy.name,
 
-        distance_km: distance,
+        distance_km:
+            distance
 
-        seating_capacity:
-            seating,
-
-        vehicle_id:
-            vehicle
-                ? Number(vehicle.id)
-                : undefined
     };
 
+
     /*
-     * Remove undefined vehicle_id.
+     * Only send seating when selected.
      */
 
-    Object.keys(requestBody).forEach(key => {
+    if (seating !== null) {
 
-        if (
-            requestBody[key] ===
-            undefined
-        ) {
+        requestBody.seating_capacity =
+            seating;
 
-            delete requestBody[key];
-        }
+    }
 
-    });
+
+    /*
+     * Send vehicle when selected.
+     */
+
+    if (vehicleId) {
+
+        requestBody.vehicle_id =
+            vehicleId;
+
+    }
 
 
     console.log(
@@ -1188,13 +1351,15 @@ async function calculateFare() {
     );
 
 
-    /*
-     * --------------------------------------------------------
-     * UI LOADING
-     * --------------------------------------------------------
-     */
+    /* --------------------------------------------------------
+       LOADING STATE
+    -------------------------------------------------------- */
 
-    setCalculationLoading(true);
+    state.loading = true;
+
+    setCalculateLoading(true);
+
+    showResultEmpty();
 
 
     try {
@@ -1219,12 +1384,6 @@ async function calculateFare() {
         );
 
 
-        /*
-         * ----------------------------------------------------
-         * VERIFY SERVER RESPONSE
-         * ----------------------------------------------------
-         */
-
         if (
             !data ||
             data.success !== true ||
@@ -1232,350 +1391,590 @@ async function calculateFare() {
         ) {
 
             throw new Error(
-                "The server returned an invalid fare response."
+                "The server returned an invalid fare calculation."
             );
+
         }
 
 
-        const calculation =
+        state.lastCalculation =
             data.calculation;
 
 
-        /*
-         * CRITICAL:
-         *
-         * We NEVER create a fare ourselves here.
-         *
-         * The fare must come from the backend.
-         */
-
-        if (
-            calculation.fare ===
-            null ||
-            calculation.fare ===
-            undefined
-        ) {
-
-            showUnavailableFare(
-                calculation
-            );
-
-            return;
-        }
+        displayCalculation(
+            data.calculation
+        );
 
 
-        const fare =
-            Number(calculation.fare);
-
-
-        if (
-            !Number.isFinite(fare)
-        ) {
-
-            throw new Error(
-                "The server returned an invalid fare."
-            );
-        }
-
-
-        /*
-         * ----------------------------------------------------
-         * SAVE RESULT
-         * ----------------------------------------------------
-         */
-
-        state.lastCalculation =
-            calculation;
-
-
-        /*
-         * ----------------------------------------------------
-         * DISPLAY RESULT
-         * ----------------------------------------------------
-         */
-
-        displayFareResult(
-            calculation
+        showToast(
+            "Fare calculated successfully."
         );
 
 
     } catch (error) {
 
         console.error(
-            "Fare calculation error:",
+            "Fare calculation failed:",
             error
         );
 
-        showError(
+        showCalculationError(
             error.message ||
             "Unable to calculate fare."
         );
 
     } finally {
 
-        setCalculationLoading(false);
+        state.loading =
+            false;
+
+        setCalculateLoading(
+            false
+        );
 
     }
+
 }
 
 
 /* ============================================================
-   DISPLAY FARE RESULT
-   ============================================================ */
+   DISPLAY CALCULATION
+============================================================ */
 
-function displayFareResult(calculation) {
+function displayCalculation(
+    calculation
+) {
 
     const fare =
-        Number(calculation.fare);
+        Number(
+            calculation.fare
+        );
 
-    const formattedFare =
-        formatCurrency(fare);
 
+    /* --------------------------------------------------------
+       FARE
+    -------------------------------------------------------- */
 
-    /*
-     * Main fare
-     */
+    if (elements.fareAmount) {
 
-    if (elements.fare) {
+        elements.fareAmount.textContent =
+            formatCurrencyNumber(
+                fare
+            );
 
-        elements.fare.textContent =
-            formattedFare;
     }
 
 
-    /*
-     * Category
-     */
+    /* --------------------------------------------------------
+       CATEGORY
+    -------------------------------------------------------- */
 
     if (elements.resultCategory) {
 
         elements.resultCategory.textContent =
             calculation.category ||
             "—";
+
     }
 
 
-    /*
-     * Vehicle
-     */
+    /* --------------------------------------------------------
+       ENERGY
+    -------------------------------------------------------- */
 
-    if (elements.resultVehicle) {
+    if (elements.resultEnergy) {
 
-        elements.resultVehicle.textContent =
-            calculation.vehicle?.name ||
-            state.selectedVehicle?.name ||
-            calculation.category ||
+        elements.resultEnergy.textContent =
+            calculation.energy_source ||
             "—";
+
     }
 
 
-    /*
-     * Distance
-     */
+    /* --------------------------------------------------------
+       DISTANCE
+    -------------------------------------------------------- */
 
     if (elements.resultDistance) {
 
         elements.resultDistance.textContent =
-            `${formatNumber(
+            formatNumber(
                 calculation.distance_km
-            )} km`;
+            );
+
     }
 
 
-    /*
-     * Calculation method
-     */
+    /* --------------------------------------------------------
+       SEATING
+    -------------------------------------------------------- */
 
-    if (elements.resultMethod) {
+    if (elements.resultSeats) {
 
-        elements.resultMethod.textContent =
-            getCalculationMethodLabel(
+        if (
+            calculation.seating_capacity !==
+                null &&
+            calculation.seating_capacity !==
+                undefined
+        ) {
+
+            elements.resultSeats.textContent =
+                `${calculation.seating_capacity} seats`;
+
+        } else {
+
+            elements.resultSeats.textContent =
+                "—";
+
+        }
+
+    }
+
+
+    /* --------------------------------------------------------
+       CALCULATION METHOD
+    -------------------------------------------------------- */
+
+    if (elements.calculationMethod) {
+
+        elements.calculationMethod.textContent =
+            formatCalculationMethod(
                 calculation.calculation_method
             );
+
     }
 
 
-    /*
-     * Show result container
-     */
+    /* --------------------------------------------------------
+       FARE RULE INFORMATION
+    -------------------------------------------------------- */
 
-    if (elements.result) {
+    if (elements.fareRuleNote) {
 
-        elements.result.classList.add(
-            "active",
-            "show",
-            "visible"
-        );
+        elements.fareRuleNote.textContent =
+            buildFareRuleNote(
+                calculation
+            );
 
-        elements.result.hidden =
-            false;
     }
 
 
-    /*
-     * Update any generic fare fields
-     */
+    /* --------------------------------------------------------
+       SHOW SUCCESS
+    -------------------------------------------------------- */
 
-    $all(
-        "[data-fare]"
-    ).forEach(element => {
+    showResultSuccess();
 
-        element.textContent =
-            formattedFare;
-    });
+}
 
 
-    /*
-     * Update currency fields
-     */
+/* ============================================================
+   BUILD FARE RULE NOTE
+============================================================ */
 
-    $all(
-        "[data-currency]"
-    ).forEach(element => {
+function buildFareRuleNote(
+    calculation
+) {
 
-        element.textContent =
-            formattedFare;
-    });
+    const parts = [];
 
-
-    /*
-     * Scroll result into view on mobile
-     */
 
     if (
-        window.innerWidth < 768 &&
-        elements.result
+        calculation.government_reference
     ) {
 
-        setTimeout(() => {
-
-            elements.result.scrollIntoView({
-                behavior: "smooth",
-                block: "center"
-            });
-
-        }, 100);
-    }
-
-}
-
-
-/* ============================================================
-   UNAVAILABLE FARE
-   ============================================================ */
-
-function showUnavailableFare(calculation) {
-
-    if (elements.fare) {
-
-        elements.fare.textContent =
-            "Fare unavailable";
-    }
-
-    if (elements.resultMethod) {
-
-        elements.resultMethod.textContent =
-            "No fare rule configured";
-    }
-
-    if (elements.result) {
-
-        elements.result.classList.add(
-            "active",
-            "show",
-            "visible"
+        parts.push(
+            `Reference: ${calculation.government_reference}.`
         );
 
-        elements.result.hidden =
-            false;
     }
 
-    showError(
-        `A fare rule has not yet been configured for ${
-            calculation.category || "this vehicle"
-        }.`
-    );
+
+    if (
+        calculation.minimum_fare !==
+            null &&
+        calculation.minimum_distance_km !==
+            null
+    ) {
+
+        parts.push(
+            `Minimum fare ₹${formatNumber(
+                calculation.minimum_fare
+            )} for the first ${formatNumber(
+                calculation.minimum_distance_km
+            )} km.`
+        );
+
+    }
+
+
+    if (
+        calculation.additional_distance_km !==
+            null &&
+        calculation.additional_fare !==
+            null
+    ) {
+
+        parts.push(
+            `Additional distance: ${formatNumber(
+                calculation.additional_distance_km
+            )} km, adding ₹${formatNumber(
+                calculation.additional_fare
+            )}.`
+        );
+
+    }
+
+
+    if (
+        parts.length === 0
+    ) {
+
+        return "Calculated using the applicable fare rule available in the Fare Keralam database.";
+
+    }
+
+
+    return parts.join(" ");
+
 }
 
 
 /* ============================================================
-   CALCULATION METHOD LABEL
-   ============================================================ */
+   CALCULATION METHOD FORMATTER
+============================================================ */
 
-function getCalculationMethodLabel(method) {
+function formatCalculationMethod(
+    method
+) {
 
-    const labels = {
+    if (!method) {
 
-        database_fare_rule:
-            "Government/database fare rule",
+        return "Database fare rule";
 
-        database_fare_slab:
-            "Database fare slab",
+    }
 
-        fuel_adjusted:
-            "Fuel-adjusted fare",
+    return method
+        .replaceAll("_", " ")
+        .replace(
+            /\b\w/g,
+            letter =>
+                letter.toUpperCase()
+        );
 
-        government_rule:
-            "Government fare rule",
-
-        fallback_default:
-            "Default fare",
-
-        unavailable:
-            "Fare unavailable"
-    };
-
-    return (
-        labels[method] ||
-        method ||
-        "Database fare"
-    );
 }
 
 
 /* ============================================================
-   CURRENCY
-   ============================================================ */
+   NUMBER FORMATTING
+============================================================ */
 
-function formatCurrency(value) {
-
-    return new Intl.NumberFormat(
-        "en-IN",
-        {
-            style: "currency",
-            currency: "INR",
-            maximumFractionDigits: 2,
-            minimumFractionDigits: 2
-        }
-    ).format(value);
-}
-
-
-/* ============================================================
-   NUMBER FORMAT
-   ============================================================ */
-
-function formatNumber(value) {
+function formatNumber(
+    value
+) {
 
     const number =
         Number(value);
 
-    if (!Number.isFinite(number)) {
-        return "0";
+    if (
+        !Number.isFinite(number)
+    ) {
+
+        return "0.00";
+
     }
 
     return number.toLocaleString(
         "en-IN",
         {
+            minimumFractionDigits: 2,
             maximumFractionDigits: 2
         }
     );
+
+}
+
+
+/* ============================================================
+   CURRENCY NUMBER
+============================================================ */
+
+function formatCurrencyNumber(
+    value
+) {
+
+    const number =
+        Number(value);
+
+    if (
+        !Number.isFinite(number)
+    ) {
+
+        return "0.00";
+
+    }
+
+    return number.toLocaleString(
+        "en-IN",
+        {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }
+    );
+
+}
+
+
+/* ============================================================
+   RESULT STATES
+============================================================ */
+
+function showResultEmpty() {
+
+    if (elements.resultEmpty) {
+
+        elements.resultEmpty.style.display =
+            "";
+
+    }
+
+    if (elements.resultSuccess) {
+
+        elements.resultSuccess.style.display =
+            "none";
+
+    }
+
+    if (elements.resultError) {
+
+        elements.resultError.style.display =
+            "none";
+
+    }
+
+}
+
+
+function showResultSuccess() {
+
+    if (elements.resultEmpty) {
+
+        elements.resultEmpty.style.display =
+            "none";
+
+    }
+
+    if (elements.resultSuccess) {
+
+        elements.resultSuccess.style.display =
+            "";
+
+    }
+
+    if (elements.resultError) {
+
+        elements.resultError.style.display =
+            "none";
+
+    }
+
+    elements.resultCard?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest"
+    });
+
+}
+
+
+function showCalculationError(
+    message
+) {
+
+    if (elements.errorMessage) {
+
+        elements.errorMessage.textContent =
+            message;
+
+    }
+
+    if (elements.resultEmpty) {
+
+        elements.resultEmpty.style.display =
+            "none";
+
+    }
+
+    if (elements.resultSuccess) {
+
+        elements.resultSuccess.style.display =
+            "none";
+
+    }
+
+    if (elements.resultError) {
+
+        elements.resultError.style.display =
+            "";
+
+    }
+
+}
+
+
+function clearFareResult() {
+
+    state.lastCalculation =
+        null;
+
+    showResultEmpty();
+
+    clearError();
+
+}
+
+
+function clearError() {
+
+    if (elements.errorMessage) {
+
+        elements.errorMessage.textContent =
+            "Something went wrong. Please try again.";
+
+    }
+
+}
+
+
+/* ============================================================
+   CALCULATE BUTTON LOADING
+============================================================ */
+
+function setCalculateLoading(
+    loading
+) {
+
+    const button =
+        elements.calculateBtn;
+
+    if (!button) {
+        return;
+    }
+
+    button.disabled =
+        loading;
+
+    button.classList.toggle(
+        "loading",
+        loading
+    );
+
+
+    const buttonText =
+        button.querySelector(
+            ".button-text"
+        );
+
+    const buttonLoader =
+        button.querySelector(
+            ".button-loader"
+        );
+
+
+    if (buttonText) {
+
+        buttonText.style.display =
+            loading
+                ? "none"
+                : "";
+
+    }
+
+
+    if (buttonLoader) {
+
+        buttonLoader.style.display =
+            loading
+                ? "inline-flex"
+                : "none";
+
+    }
+
+}
+
+
+/* ============================================================
+   RESET CALCULATOR
+============================================================ */
+
+function resetCalculator() {
+
+    if (elements.fareForm) {
+
+        elements.fareForm.reset();
+
+    }
+
+    state.selectedCategory =
+        null;
+
+    state.selectedEnergy =
+        null;
+
+    state.selectedVehicle =
+        null;
+
+    state.selectedSeating =
+        null;
+
+    state.lastCalculation =
+        null;
+
+
+    if (elements.category) {
+
+        elements.category.selectedIndex =
+            0;
+
+    }
+
+
+    if (elements.energy) {
+
+        elements.energy.selectedIndex =
+            0;
+
+    }
+
+
+    if (elements.vehicle) {
+
+        elements.vehicle.innerHTML =
+            "";
+
+        addPlaceholder(
+            elements.vehicle,
+            "Select vehicle model"
+        );
+
+    }
+
+
+    updateCategoryRequirements();
+
+    updateSeatingOptions();
+
+    showResultEmpty();
+
+    clearError();
+
+    elements.distance?.focus();
+
 }
 
 
 /* ============================================================
    DISTANCE INPUT
-   ============================================================ */
+============================================================ */
 
 function setupDistanceInput() {
 
@@ -1588,37 +1987,33 @@ function setupDistanceInput() {
         () => {
 
             /*
-             * Allow only numbers and decimal point.
+             * Prevent negative values.
              */
 
-            let value =
-                elements.distance.value;
+            if (
+                Number(
+                    elements.distance.value
+                ) < 0
+            ) {
 
-            value =
-                value.replace(
-                    /[^0-9.]/g,
-                    ""
-                );
+                elements.distance.value =
+                    "";
 
-            /*
-             * Only one decimal point.
-             */
-
-            const parts =
-                value.split(".");
-
-            if (parts.length > 2) {
-
-                value =
-                    parts[0] +
-                    "." +
-                    parts.slice(1).join("");
             }
 
-            elements.distance.value =
-                value;
+            /*
+             * Remove stale result after
+             * changing distance.
+             */
 
-            clearFareResult();
+            if (
+                state.lastCalculation
+            ) {
+
+                clearFareResult();
+
+            }
+
         }
     );
 
@@ -1635,479 +2030,429 @@ function setupDistanceInput() {
                 event.preventDefault();
 
                 calculateFare();
+
             }
 
         }
     );
+
 }
 
 
 /* ============================================================
    INITIAL UI
-   ============================================================ */
+============================================================ */
 
 function setupInitialUI() {
 
-    clearFareResult();
-
-    clearError();
-
-    /*
-     * Hide seating if not required.
-     */
-
     updateCategoryRequirements();
 
-    /*
-     * Build seating choices.
-     */
-
     updateSeatingOptions();
+
+    populateVehicleSelect();
+
 }
 
 
 /* ============================================================
-   CLEAR RESULT
-   ============================================================ */
+   STATISTICS
+============================================================ */
 
-function clearFareResult() {
+function updateStatistics() {
 
-    if (elements.fare) {
+    const categoryCount =
+        state.categories.length;
 
-        /*
-         * Don't show a fake fare.
-         */
+    const energyCount =
+        state.energySources.length;
 
-        elements.fare.textContent =
-            "₹ —";
+    const vehicleCount =
+        state.vehicles.length;
+
+
+    if (elements.categoryCount) {
+
+        elements.categoryCount.textContent =
+            categoryCount;
+
     }
 
-    if (elements.resultMethod) {
 
-        elements.resultMethod.textContent =
-            "Enter journey details";
+    if (elements.energyCount) {
+
+        elements.energyCount.textContent =
+            energyCount;
+
     }
 
-    if (elements.result) {
 
-        /*
-         * Don't forcibly hide the result if
-         * your CSS uses it as a permanent card.
-         *
-         * Just remove previous state classes.
-         */
+    if (elements.vehicleCountStat) {
 
-        elements.result.classList.remove(
-            "active",
-            "show",
-            "visible"
-        );
+        elements.vehicleCountStat.textContent =
+            vehicleCount;
+
     }
 
-    state.lastCalculation =
-        null;
+
+    if (elements.vehicleCount) {
+
+        elements.vehicleCount.textContent =
+            `${vehicleCount}+`;
+
+    }
+
 }
 
 
 /* ============================================================
-   ERROR DISPLAY
-   ============================================================ */
+   FOOTER STATUS
+============================================================ */
 
-function showError(message) {
-
-    console.error(
-        "Fare Keralam:",
-        message
-    );
-
-    if (elements.error) {
-
-        elements.error.textContent =
-            message;
-
-        elements.error.classList.add(
-            "active",
-            "show",
-            "visible"
-        );
-
-        elements.error.hidden =
-            false;
-
-        return;
-    }
-
-    /*
-     * If the existing HTML doesn't have
-     * an error element, create one.
-     */
-
-    createTemporaryMessage(
-        message,
-        "error"
-    );
-}
-
-
-/* ============================================================
-   CLEAR ERROR
-   ============================================================ */
-
-function clearError() {
-
-    if (!elements.error) {
-        return;
-    }
-
-    elements.error.textContent = "";
-
-    elements.error.classList.remove(
-        "active",
-        "show",
-        "visible"
-    );
-}
-
-
-/* ============================================================
-   TEMPORARY MESSAGE
-   ============================================================ */
-
-function createTemporaryMessage(
+function setFooterStatus(
     message,
-    type = "error"
+    online
 ) {
 
-    const existing =
-        document.querySelector(
-            ".fare-k-temp-message"
-        );
+    if (
+        elements.footerStatus
+    ) {
 
-    if (existing) {
-        existing.remove();
+        elements.footerStatus.textContent =
+            message;
+
     }
 
-    const element =
-        document.createElement("div");
+    const statusDot =
+        document.querySelector(
+            ".status-dot"
+        );
 
-    element.className =
-        `fare-k-temp-message ${type}`;
+    if (statusDot) {
 
-    element.textContent =
-        message;
+        statusDot.classList.toggle(
+            "offline",
+            !online
+        );
 
-    element.style.cssText = `
-        position: fixed;
-        left: 50%;
-        bottom: 25px;
-        transform: translateX(-50%);
-        z-index: 99999;
-        max-width: 90%;
-        padding: 14px 20px;
-        border-radius: 12px;
-        background: rgba(20, 20, 30, 0.95);
-        color: white;
-        border: 1px solid rgba(255,255,255,.15);
-        box-shadow: 0 15px 40px rgba(0,0,0,.25);
-        font-size: 14px;
-        text-align: center;
-        backdrop-filter: blur(15px);
-    `;
+    }
 
-    document.body.appendChild(
-        element
-    );
-
-    setTimeout(() => {
-
-        element.remove();
-
-    }, 4500);
 }
 
 
 /* ============================================================
-   LOADING STATE
-   ============================================================ */
+   PAGE LOADER
+============================================================ */
 
-function showLoading(show) {
+function showPageLoader(
+    visible
+) {
 
-    if (!elements.loading) {
+    if (
+        !elements.pageLoader
+    ) {
+
         return;
+
     }
 
-    if (show) {
+    if (visible) {
 
-        elements.loading.classList.add(
-            "active",
-            "show",
-            "visible"
+        elements.pageLoader.classList.remove(
+            "hidden"
         );
 
     } else {
 
-        elements.loading.classList.remove(
-            "active",
-            "show",
-            "visible"
+        elements.pageLoader.classList.add(
+            "hidden"
         );
 
     }
+
 }
 
 
 /* ============================================================
-   CALCULATION BUTTON LOADING
-   ============================================================ */
+   GENERIC LOADING
+============================================================ */
 
-function setCalculationLoading(
+function showLoading(
     loading
 ) {
 
     state.loading =
         loading;
 
-    const button =
-        elements.calculateButton;
-
-    if (!button) {
-        return;
-    }
-
-    if (loading) {
-
-        button.dataset.originalText =
-            button.textContent;
-
-        button.disabled =
-            true;
-
-        button.setAttribute(
-            "aria-busy",
-            "true"
-        );
-
-        button.textContent =
-            "Calculating…";
-
-        button.classList.add(
-            "loading"
-        );
-
-    } else {
-
-        button.disabled =
-            false;
-
-        button.removeAttribute(
-            "aria-busy"
-        );
-
-        button.textContent =
-            button.dataset.originalText ||
-            "Calculate Fare";
-
-        button.classList.remove(
-            "loading"
-        );
-    }
 }
 
 
 /* ============================================================
-   FOCUS HELPER
-   ============================================================ */
-
-function focusElement(element) {
-
-    if (!element) {
-        return;
-    }
-
-    try {
-
-        element.focus();
-
-    } catch {
-        // Ignore focus errors.
-    }
-}
-
-
-/* ============================================================
-   NAVIGATION
-   ============================================================ */
+   MOBILE NAVIGATION
+============================================================ */
 
 function setupNavigation() {
 
-    /*
-     * Mobile menu
-     */
-
-    const menuButton =
-        findElement(
-            "#menuToggle",
-            "#menu-toggle",
-            ".menu-toggle",
-            "[data-menu-toggle]"
-        );
-
-    const nav =
-        findElement(
-            "#nav",
-            "#navbar",
-            ".navbar",
-            ".nav-menu",
-            "[data-navigation]"
-        );
-
     if (
-        menuButton &&
-        nav
+        !elements.mobileMenuBtn ||
+        !elements.mainNav
     ) {
 
-        menuButton.addEventListener(
-            "click",
-            () => {
+        return;
 
-                nav.classList.toggle(
-                    "active"
-                );
-
-                menuButton.classList.toggle(
-                    "active"
-                );
-            }
-        );
     }
 
 
-    /*
-     * Smooth anchor navigation
-     */
+    elements.mobileMenuBtn.addEventListener(
+        "click",
+        () => {
 
-    $all(
-        'a[href^="#"]'
-    ).forEach(link => {
-
-        link.addEventListener(
-            "click",
-            event => {
-
-                const targetId =
-                    link.getAttribute(
-                        "href"
-                    );
-
-                if (
-                    !targetId ||
-                    targetId === "#"
-                ) {
-                    return;
-                }
-
-                const target =
-                    document.querySelector(
-                        targetId
-                    );
-
-                if (!target) {
-                    return;
-                }
-
-                event.preventDefault();
-
-                target.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start"
-                });
-
-                if (nav) {
-                    nav.classList.remove(
-                        "active"
-                    );
-                }
-
-                if (menuButton) {
-                    menuButton.classList.remove(
-                        "active"
-                    );
-                }
-
-            }
-        );
-    });
-}
-
-
-/* ============================================================
-   BACKEND HEALTH CHECK
-   ============================================================ */
-
-async function checkBackendHealth() {
-
-    try {
-
-        const data =
-            await apiRequest(
-                API.health
+            elements.mainNav.classList.toggle(
+                "open"
             );
 
-        console.log(
-            "Fare Keralam backend:",
-            data
-        );
+            const isOpen =
+                elements.mainNav.classList.contains(
+                    "open"
+                );
 
-        return data;
+            elements.mobileMenuBtn.setAttribute(
+                "aria-label",
+                isOpen
+                    ? "Close navigation"
+                    : "Open navigation"
+            );
 
-    } catch (error) {
+            const icon =
+                elements.mobileMenuBtn.querySelector(
+                    "i"
+                );
 
-        console.error(
-            "Backend health check failed:",
-            error
-        );
+            if (icon) {
 
-        return null;
-    }
+                icon.className =
+                    isOpen
+                        ? "fa-solid fa-xmark"
+                        : "fa-solid fa-bars";
+
+            }
+
+        }
+    );
+
+
+    $all(
+        "#mainNav a"
+    ).forEach(
+        link => {
+
+            link.addEventListener(
+                "click",
+                () => {
+
+                    elements.mainNav.classList.remove(
+                        "open"
+                    );
+
+                    const icon =
+                        elements.mobileMenuBtn.querySelector(
+                            "i"
+                        );
+
+                    if (icon) {
+
+                        icon.className =
+                            "fa-solid fa-bars";
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+
+    window.addEventListener(
+        "scroll",
+        updateActiveNavigation,
+        {
+            passive: true
+        }
+    );
+
+
+    window.addEventListener(
+        "scroll",
+        updateHeader,
+        {
+            passive: true
+        }
+    );
+
 }
 
 
 /* ============================================================
-   OPTIONAL GLOBAL API
-   ============================================================
-   Useful if other frontend components need access.
-   ============================================================ */
+   ACTIVE NAVIGATION
+============================================================ */
+
+function updateActiveNavigation() {
+
+    const sections =
+        $all(
+            "main section[id]"
+        );
+
+    const links =
+        $all(
+            ".nav-link"
+        );
+
+    let current =
+        "home";
+
+    const scrollPosition =
+        window.scrollY + 150;
+
+
+    sections.forEach(
+        section => {
+
+            if (
+                scrollPosition >=
+                section.offsetTop
+            ) {
+
+                current =
+                    section.id;
+
+            }
+
+        }
+    );
+
+
+    links.forEach(
+        link => {
+
+            const href =
+                link.getAttribute(
+                    "href"
+                );
+
+            link.classList.toggle(
+                "active",
+                href ===
+                `#${current}`
+            );
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   HEADER SCROLL EFFECT
+============================================================ */
+
+function updateHeader() {
+
+    if (!elements.header) {
+        return;
+    }
+
+    elements.header.classList.toggle(
+        "scrolled",
+        window.scrollY > 30
+    );
+
+}
+
+
+/* ============================================================
+   CURRENT YEAR
+============================================================ */
+
+function setCurrentYear() {
+
+    if (
+        elements.currentYear
+    ) {
+
+        elements.currentYear.textContent =
+            new Date().getFullYear();
+
+    }
+
+}
+
+
+/* ============================================================
+   TOAST
+============================================================ */
+
+let toastTimer = null;
+
+function showToast(
+    message
+) {
+
+    if (
+        !elements.toast
+    ) {
+
+        return;
+
+    }
+
+    if (
+        elements.toastMessage
+    ) {
+
+        elements.toastMessage.textContent =
+            message;
+
+    }
+
+    elements.toast.classList.add(
+        "show"
+    );
+
+
+    clearTimeout(
+        toastTimer
+    );
+
+
+    toastTimer =
+        setTimeout(
+            () => {
+
+                elements.toast.classList.remove(
+                    "show"
+                );
+
+            },
+            3000
+        );
+
+}
+
+
+/* ============================================================
+   EXPOSE OPTIONAL DEBUG STATE
+============================================================ */
 
 window.FareKeralam = {
-
+    state,
+    API,
     calculateFare,
-
-    loadCategories,
-
-    loadVehicles,
-
-    loadEnergySources,
-
-    checkBackendHealth,
-
-    getState: () => ({
-        ...state
-    }),
-
-    API
+    resetCalculator,
+    checkAPIHealth
 };
 
 
 /* ============================================================
-   DEBUG
-   ============================================================ */
-
-console.log(
-    "%cFARE KERALAM",
-    "font-size:20px;font-weight:800;"
-);
-
-console.log(
-    "API:",
-    API_BASE_URL
-);
+   END
+============================================================ */
