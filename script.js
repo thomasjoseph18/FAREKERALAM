@@ -1,22 +1,15 @@
 /* ============================================================
-   FARE KERALAM - UPDATED FRONTEND SCRIPT
+   FARE KERALAM - FRONTEND JAVASCRIPT
    ============================================================
    Backend:
    https://farekeralam.onrender.com
 
-   API:
-   GET  /api/categories
-   GET  /api/energy-sources
-   GET  /api/vehicles
-   GET  /api/vehicle-options
-   GET  /api/health
-   POST /api/fare/calculate
-
    IMPORTANT:
-   - No hard-coded fare calculation
-   - Fare always comes from the backend/database
-   - Frontend only collects user input and displays API results
-   ============================================================ */
+   - Frontend does NOT calculate fares.
+   - All fare calculations come from the backend.
+   - Includes API timeout protection.
+   - Includes page-loader safety.
+============================================================ */
 
 "use strict";
 
@@ -25,15 +18,27 @@
    CONFIGURATION
 ============================================================ */
 
-const API_BASE_URL = "https://farekeralam.onrender.com/api";
+const API_BASE_URL =
+    "https://farekeralam.onrender.com/api";
 
 const API = {
-    categories: `${API_BASE_URL}/categories`,
-    energySources: `${API_BASE_URL}/energy-sources`,
-    vehicles: `${API_BASE_URL}/vehicles`,
-    vehicleOptions: `${API_BASE_URL}/vehicle-options`,
-    calculate: `${API_BASE_URL}/fare/calculate`,
-    health: `${API_BASE_URL}/health`
+    categories:
+        `${API_BASE_URL}/categories`,
+
+    energySources:
+        `${API_BASE_URL}/energy-sources`,
+
+    vehicles:
+        `${API_BASE_URL}/vehicles`,
+
+    vehicleOptions:
+        `${API_BASE_URL}/vehicle-options`,
+
+    calculate:
+        `${API_BASE_URL}/fare/calculate`,
+
+    health:
+        `${API_BASE_URL}/health`
 };
 
 
@@ -42,18 +47,25 @@ const API = {
 ============================================================ */
 
 const state = {
+
     categories: [],
+
     energySources: [],
+
     vehicles: [],
 
     selectedCategory: null,
+
     selectedEnergy: null,
+
     selectedVehicle: null,
+
     selectedSeating: null,
 
     lastCalculation: null,
 
     loading: false
+
 };
 
 
@@ -62,11 +74,17 @@ const state = {
 ============================================================ */
 
 function $(selector) {
+
     return document.querySelector(selector);
+
 }
 
 function $all(selector) {
-    return [...document.querySelectorAll(selector)];
+
+    return [
+        ...document.querySelectorAll(selector)
+    ];
+
 }
 
 
@@ -75,56 +93,148 @@ function $all(selector) {
 ============================================================ */
 
 const elements = {
-    pageLoader: $("#pageLoader"),
 
-    header: $("#siteHeader"),
+    pageLoader:
+        $("#pageLoader"),
 
-    mobileMenuBtn: $("#mobileMenuBtn"),
-    mainNav: $("#mainNav"),
+    header:
+        $("#siteHeader"),
 
-    fareForm: $("#fareForm"),
+    mobileMenuBtn:
+        $("#mobileMenuBtn"),
 
-    category: $("#category"),
-    energy: $("#energy"),
-    vehicle: $("#vehicle"),
-    seating: $("#seating"),
-    distance: $("#distance"),
+    mainNav:
+        $("#mainNav"),
 
-    vehicleGroup: $("#vehicleGroup"),
-    seatingGroup: $("#seatingGroup"),
+    fareForm:
+        $("#fareForm"),
 
-    calculateBtn: $("#calculateBtn"),
+    category:
+        $("#category"),
 
-    resultCard: $("#resultCard"),
-    resultEmpty: $("#resultEmpty"),
-    resultSuccess: $("#resultSuccess"),
-    resultError: $("#resultError"),
+    energy:
+        $("#energy"),
 
-    fareAmount: $("#fareAmount"),
+    vehicle:
+        $("#vehicle"),
 
-    resultCategory: $("#resultCategory"),
-    resultEnergy: $("#resultEnergy"),
-    resultDistance: $("#resultDistance"),
-    resultSeats: $("#resultSeats"),
+    seating:
+        $("#seating"),
 
-    calculationMethod: $("#calculationMethod"),
-    fareRuleNote: $("#fareRuleNote"),
+    distance:
+        $("#distance"),
 
-    resetBtn: $("#resetBtn"),
-    retryBtn: $("#retryBtn"),
+    vehicleGroup:
+        $("#vehicleGroup"),
 
-    errorMessage: $("#errorMessage"),
+    seatingGroup:
+        $("#seatingGroup"),
 
-    footerStatus: $("#footerStatus"),
-    currentYear: $("#currentYear"),
+    calculateBtn:
+        $("#calculateBtn"),
 
-    categoryCount: $("#categoryCount"),
-    energyCount: $("#energyCount"),
-    vehicleCount: $("#vehicleCount"),
-    vehicleCountStat: $("#vehicleCountStat"),
+    resultCard:
+        $("#resultCard"),
 
-    toast: $("#toast"),
-    toastMessage: $("#toastMessage")
+    resultEmpty:
+        $("#resultEmpty"),
+
+    resultSuccess:
+        $("#resultSuccess"),
+
+    resultError:
+        $("#resultError"),
+
+    fareAmount:
+        $("#fareAmount"),
+
+    resultCategory:
+        $("#resultCategory"),
+
+    resultEnergy:
+        $("#resultEnergy"),
+
+    resultDistance:
+        $("#resultDistance"),
+
+    resultSeats:
+        $("#resultSeats"),
+
+    resultVehicle:
+        $("#resultVehicle"),
+
+    calculationMethod:
+        $("#calculationMethod"),
+
+    fareRuleNote:
+        $("#fareRuleNote"),
+
+    minimumFare:
+        $("#minimumFare"),
+
+    additionalDistance:
+        $("#additionalDistance"),
+
+    additionalFare:
+        $("#additionalFare"),
+
+    slabSection:
+        $("#slabSection"),
+
+    slabBreakdown:
+        $("#slabBreakdown"),
+
+    resetBtn:
+        $("#resetBtn"),
+
+    retryBtn:
+        $("#retryBtn"),
+
+    errorMessage:
+        $("#errorMessage"),
+
+    footerStatus:
+        $("#footerStatus"),
+
+    footerStatusDot:
+        $("#footerStatusDot"),
+
+    currentYear:
+        $("#currentYear"),
+
+    categoryCount:
+        $("#categoryCount"),
+
+    energyCount:
+        $("#energyCount"),
+
+    vehicleCount:
+        $("#vehicleCount"),
+
+    vehicleCountStat:
+        $("#vehicleCountStat"),
+
+    toast:
+        $("#toast"),
+
+    toastMessage:
+        $("#toastMessage"),
+
+    heroApiStatus:
+        $("#heroApiStatus"),
+
+    heroVehicle:
+        $("#heroVehicle"),
+
+    heroDistance:
+        $("#heroDistance"),
+
+    heroFare:
+        $("#heroFare"),
+
+    heroEnergy:
+        $("#heroEnergy")
+
 };
 
 
@@ -132,11 +242,25 @@ const elements = {
    INITIALIZATION
 ============================================================ */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
 
-    initializeApplication();
+        initializeApplication();
 
-});
+        /*
+         * Safety fallback.
+         * The page must never remain hidden forever.
+         */
+        setTimeout(
+            () => {
+                showPageLoader(false);
+            },
+            10000
+        );
+
+    }
+);
 
 
 async function initializeApplication() {
@@ -155,11 +279,27 @@ async function initializeApplication() {
 
         showPageLoader(true);
 
+        console.log(
+            "Checking Fare Keralam API..."
+        );
+
         await checkAPIHealth();
+
+        console.log(
+            "Loading categories..."
+        );
 
         await loadCategories();
 
+        console.log(
+            "Loading energy sources..."
+        );
+
         await loadEnergySources();
+
+        console.log(
+            "Loading vehicles..."
+        );
 
         await loadVehicles();
 
@@ -172,14 +312,16 @@ async function initializeApplication() {
             true
         );
 
+        updateHeroAPIStatus(true);
+
         console.log(
-            "Fare Keralam frontend initialized successfully."
+            "Fare Keralam initialized successfully."
         );
 
     } catch (error) {
 
         console.error(
-            "Fare Keralam initialization error:",
+            "Initialization error:",
             error
         );
 
@@ -188,15 +330,19 @@ async function initializeApplication() {
             false
         );
 
+        updateHeroAPIStatus(false);
+
         showToast(
-            "Unable to load Fare Keralam data."
+            error.message ||
+            "Unable to connect to Fare Keralam API."
         );
 
     } finally {
 
-        setTimeout(() => {
-            showPageLoader(false);
-        }, 500);
+        /*
+         * ALWAYS hide loader.
+         */
+        showPageLoader(false);
 
     }
 
@@ -204,78 +350,153 @@ async function initializeApplication() {
 
 
 /* ============================================================
-   API REQUEST HELPER
+   API REQUEST
 ============================================================ */
 
-async function apiRequest(url, options = {}) {
+async function apiRequest(
+    url,
+    options = {}
+) {
+
+    const controller =
+        new AbortController();
+
+    const timeout =
+        setTimeout(
+            () => {
+                controller.abort();
+            },
+            15000
+        );
 
     const requestOptions = {
+
         ...options,
+
+        signal:
+            controller.signal,
+
         headers: {
-            "Accept": "application/json",
+
+            "Accept":
+                "application/json",
+
             ...(options.body
                 ? {
                     "Content-Type":
                         "application/json"
                 }
                 : {}),
+
             ...(options.headers || {})
+
         }
+
     };
 
-    const response =
-        await fetch(
-            url,
-            requestOptions
-        );
-
-    let data = null;
 
     try {
 
-        data =
-            await response.json();
+        const response =
+            await fetch(
+                url,
+                requestOptions
+            );
 
-    } catch {
 
-        data = null;
+        let data = null;
 
-    }
 
-    if (!response.ok) {
+        try {
 
-        let message =
-            "Server request failed.";
+            data =
+                await response.json();
 
-        if (data?.detail) {
+        } catch {
 
-            if (
-                typeof data.detail ===
-                "string"
-            ) {
-
-                message =
-                    data.detail;
-
-            } else if (
-                typeof data.detail ===
-                "object"
-            ) {
-
-                message =
-                    data.detail.message ||
-                    data.detail.detail ||
-                    message;
-
-            }
+            data = null;
 
         }
 
-        throw new Error(message);
+
+        if (!response.ok) {
+
+            let message =
+                "Server request failed.";
+
+
+            if (data?.detail) {
+
+                if (
+                    typeof data.detail ===
+                    "string"
+                ) {
+
+                    message =
+                        data.detail;
+
+                } else if (
+                    typeof data.detail ===
+                    "object"
+                ) {
+
+                    message =
+                        data.detail.message ||
+                        data.detail.detail ||
+                        message;
+
+                }
+
+            }
+
+
+            throw new Error(
+                message
+            );
+
+        }
+
+
+        return data;
+
+
+    } catch (error) {
+
+        if (
+            error.name ===
+            "AbortError"
+        ) {
+
+            throw new Error(
+                "The server took too long to respond. Please try again."
+            );
+
+        }
+
+
+        /*
+         * Helpful CORS/network message.
+         */
+        if (
+            error instanceof
+            TypeError
+        ) {
+
+            throw new Error(
+                "Unable to connect to the Fare Keralam API. Please check the backend or CORS settings."
+            );
+
+        }
+
+
+        throw error;
+
+
+    } finally {
+
+        clearTimeout(timeout);
 
     }
-
-    return data;
 
 }
 
@@ -286,42 +507,39 @@ async function apiRequest(url, options = {}) {
 
 async function checkAPIHealth() {
 
-    try {
-
-        const data =
-            await apiRequest(
-                API.health
-            );
-
-        console.log(
-            "API health:",
-            data
+    const data =
+        await apiRequest(
+            API.health
         );
 
-        if (
-            data &&
-            data.status === "healthy"
-        ) {
+    console.log(
+        "API health:",
+        data
+    );
 
-            setFooterStatus(
-                "API online",
-                true
-            );
 
-        }
+    if (
+        data &&
+        (
+            data.status ===
+            "healthy"
+            ||
+            data.success ===
+            true
+        )
+    ) {
 
-        return data;
-
-    } catch (error) {
-
-        console.warn(
-            "Health check failed:",
-            error
+        setFooterStatus(
+            "API online",
+            true
         );
 
-        throw error;
+        updateHeroAPIStatus(true);
 
     }
+
+
+    return data;
 
 }
 
@@ -337,17 +555,20 @@ async function loadCategories() {
             API.categories
         );
 
+
     state.categories =
         Array.isArray(
-            data.categories
+            data?.categories
         )
             ? data.categories
             : [];
+
 
     console.log(
         "Categories:",
         state.categories
     );
+
 
     populateCategorySelect();
 
@@ -365,17 +586,20 @@ async function loadEnergySources() {
             API.energySources
         );
 
+
     state.energySources =
         Array.isArray(
-            data.energy_sources
+            data?.energy_sources
         )
             ? data.energy_sources
             : [];
+
 
     console.log(
         "Energy sources:",
         state.energySources
     );
+
 
     populateEnergySelect();
 
@@ -393,17 +617,20 @@ async function loadVehicles() {
             API.vehicles
         );
 
+
     state.vehicles =
         Array.isArray(
-            data.vehicles
+            data?.vehicles
         )
             ? data.vehicles
             : [];
+
 
     console.log(
         "Vehicles:",
         state.vehicles
     );
+
 
     populateVehicleSelect();
 
@@ -411,7 +638,7 @@ async function loadVehicles() {
 
 
 /* ============================================================
-   CATEGORY DROPDOWN
+   CATEGORY SELECT
 ============================================================ */
 
 function populateCategorySelect() {
@@ -419,16 +646,20 @@ function populateCategorySelect() {
     const select =
         elements.category;
 
+
     if (!select) {
         return;
     }
 
+
     select.innerHTML = "";
+
 
     addPlaceholder(
         select,
         "Select vehicle category"
     );
+
 
     state.categories.forEach(
         category => {
@@ -438,20 +669,26 @@ function populateCategorySelect() {
                     "option"
                 );
 
+
             option.value =
                 category.name;
+
 
             option.textContent =
                 category.name;
 
+
             option.dataset.id =
                 category.id;
+
 
             option.dataset.requiresModel =
                 category.requires_model;
 
+
             option.dataset.requiresSeating =
                 category.requires_seating_capacity;
+
 
             select.appendChild(
                 option
@@ -464,7 +701,7 @@ function populateCategorySelect() {
 
 
 /* ============================================================
-   ENERGY DROPDOWN
+   ENERGY SELECT
 ============================================================ */
 
 function populateEnergySelect() {
@@ -472,16 +709,20 @@ function populateEnergySelect() {
     const select =
         elements.energy;
 
+
     if (!select) {
         return;
     }
 
+
     select.innerHTML = "";
+
 
     addPlaceholder(
         select,
         "Select fuel / energy"
     );
+
 
     state.energySources.forEach(
         energy => {
@@ -491,14 +732,18 @@ function populateEnergySelect() {
                     "option"
                 );
 
+
             option.value =
                 energy.name;
+
 
             option.textContent =
                 energy.name;
 
+
             option.dataset.id =
                 energy.id;
+
 
             select.appendChild(
                 option
@@ -511,7 +756,7 @@ function populateEnergySelect() {
 
 
 /* ============================================================
-   VEHICLE DROPDOWN
+   VEHICLE SELECT
 ============================================================ */
 
 function populateVehicleSelect() {
@@ -519,32 +764,28 @@ function populateVehicleSelect() {
     const select =
         elements.vehicle;
 
+
     if (!select) {
         return;
     }
 
-    const filteredVehicles =
+
+    const vehicles =
         getFilteredVehicles();
+
 
     select.innerHTML = "";
 
-    if (filteredVehicles.length === 0) {
-
-        addPlaceholder(
-            select,
-            "No matching vehicle"
-        );
-
-        return;
-
-    }
 
     addPlaceholder(
         select,
-        "Select vehicle model"
+        vehicles.length
+            ? "Select vehicle model"
+            : "No matching vehicle"
     );
 
-    filteredVehicles.forEach(
+
+    vehicles.forEach(
         vehicle => {
 
             const option =
@@ -552,34 +793,41 @@ function populateVehicleSelect() {
                     "option"
                 );
 
+
             option.value =
                 vehicle.id;
+
 
             option.textContent =
                 buildVehicleLabel(
                     vehicle
                 );
 
+
             option.dataset.vehicleId =
                 vehicle.id;
+
 
             option.dataset.categoryId =
                 vehicle.category_id;
 
+
             option.dataset.energyId =
                 vehicle.energy_source_id;
 
+
             if (
                 vehicle.seating_capacity !==
-                null &&
+                    null &&
                 vehicle.seating_capacity !==
-                undefined
+                    undefined
             ) {
 
                 option.dataset.seating =
                     vehicle.seating_capacity;
 
             }
+
 
             select.appendChild(
                 option
@@ -600,14 +848,18 @@ function getFilteredVehicles() {
     let vehicles =
         [...state.vehicles];
 
+
     const category =
         getSelectedCategoryObject();
+
 
     const energy =
         getSelectedEnergyObject();
 
+
     const seating =
         getSelectedSeating();
+
 
     if (category) {
 
@@ -624,6 +876,7 @@ function getFilteredVehicles() {
 
     }
 
+
     if (energy) {
 
         vehicles =
@@ -639,6 +892,7 @@ function getFilteredVehicles() {
 
     }
 
+
     if (seating !== null) {
 
         vehicles =
@@ -647,14 +901,15 @@ function getFilteredVehicles() {
 
                     if (
                         vehicle.seating_capacity ===
-                        null ||
+                            null ||
                         vehicle.seating_capacity ===
-                        undefined
+                            undefined
                     ) {
 
                         return true;
 
                     }
+
 
                     return Number(
                         vehicle.seating_capacity
@@ -665,6 +920,7 @@ function getFilteredVehicles() {
             );
 
     }
+
 
     return vehicles;
 
@@ -683,17 +939,19 @@ function buildVehicleLabel(
         vehicle.name ||
         "Vehicle";
 
+
     if (
         vehicle.seating_capacity !==
-        null &&
+            null &&
         vehicle.seating_capacity !==
-        undefined
+            undefined
     ) {
 
         label +=
             ` — ${vehicle.seating_capacity} seats`;
 
     }
+
 
     return label;
 
@@ -714,6 +972,7 @@ function addPlaceholder(
             "option"
         );
 
+
     option.value = "";
 
     option.textContent =
@@ -722,6 +981,7 @@ function addPlaceholder(
     option.disabled = true;
 
     option.selected = true;
+
 
     select.appendChild(
         option
@@ -736,100 +996,52 @@ function addPlaceholder(
 
 function setupEventListeners() {
 
-    if (elements.category) {
+    elements.category?.addEventListener(
+        "change",
+        handleCategoryChange
+    );
 
-        elements.category.addEventListener(
-            "change",
-            handleCategoryChange
-        );
 
-    }
+    elements.energy?.addEventListener(
+        "change",
+        handleEnergyChange
+    );
 
-    if (elements.energy) {
 
-        elements.energy.addEventListener(
-            "change",
-            handleEnergyChange
-        );
+    elements.seating?.addEventListener(
+        "change",
+        handleSeatingChange
+    );
 
-    }
 
-    if (elements.seating) {
+    elements.vehicle?.addEventListener(
+        "change",
+        handleVehicleChange
+    );
 
-        elements.seating.addEventListener(
-            "change",
-            handleSeatingChange
-        );
 
-    }
+    elements.fareForm?.addEventListener(
+        "submit",
+        event => {
 
-    if (elements.vehicle) {
+            event.preventDefault();
 
-        elements.vehicle.addEventListener(
-            "change",
-            handleVehicleChange
-        );
+            calculateFare();
 
-    }
+        }
+    );
 
-    if (elements.fareForm) {
 
-        elements.fareForm.addEventListener(
-            "submit",
-            event => {
+    elements.resetBtn?.addEventListener(
+        "click",
+        resetCalculator
+    );
 
-                event.preventDefault();
 
-                calculateFare();
-
-            }
-        );
-
-    }
-
-    if (elements.calculateBtn) {
-
-        elements.calculateBtn.addEventListener(
-            "click",
-            event => {
-
-                /*
-                 * If the button is inside the form,
-                 * the submit listener handles it.
-                 */
-
-                if (
-                    !elements.fareForm
-                ) {
-
-                    event.preventDefault();
-
-                    calculateFare();
-
-                }
-
-            }
-        );
-
-    }
-
-    if (elements.resetBtn) {
-
-        elements.resetBtn.addEventListener(
-            "click",
-            resetCalculator
-        );
-
-    }
-
-    if (elements.retryBtn) {
-
-        elements.retryBtn.addEventListener(
-            "click",
-            calculateFare
-        );
-
-    }
+    elements.retryBtn?.addEventListener(
+        "click",
+        calculateFare
+    );
 
 }
 
@@ -844,11 +1056,14 @@ function handleCategoryChange() {
         elements.category?.value ||
         null;
 
+
     state.selectedVehicle =
         null;
 
+
     state.selectedSeating =
         null;
+
 
     updateCategoryRequirements();
 
@@ -871,8 +1086,10 @@ function handleEnergyChange() {
         elements.energy?.value ||
         null;
 
+
     state.selectedVehicle =
         null;
+
 
     populateVehicleSelect();
 
@@ -890,8 +1107,10 @@ function handleSeatingChange() {
     state.selectedSeating =
         getSelectedSeating();
 
+
     state.selectedVehicle =
         null;
+
 
     populateVehicleSelect();
 
@@ -911,6 +1130,7 @@ function handleVehicleChange() {
             elements.vehicle?.value
         );
 
+
     if (!vehicleId) {
 
         state.selectedVehicle =
@@ -920,18 +1140,16 @@ function handleVehicleChange() {
 
     }
 
+
     state.selectedVehicle =
         state.vehicles.find(
             vehicle =>
                 Number(
                     vehicle.id
-                ) === vehicleId
+                ) ===
+                vehicleId
         ) || null;
 
-    /*
-     * Automatically use the vehicle's seating
-     * capacity when available.
-     */
 
     if (
         state.selectedVehicle &&
@@ -948,6 +1166,9 @@ function handleVehicleChange() {
 
     }
 
+
+    updateHeroVehicle();
+
     clearFareResult();
 
 }
@@ -961,6 +1182,7 @@ function updateCategoryRequirements() {
 
     const category =
         getSelectedCategoryObject();
+
 
     if (!category) {
 
@@ -978,25 +1200,30 @@ function updateCategoryRequirements() {
 
     }
 
+
     const requiresModel =
         Boolean(
             category.requires_model
         );
+
 
     const requiresSeating =
         Boolean(
             category.requires_seating_capacity
         );
 
+
     setGroupVisible(
         elements.vehicleGroup,
         requiresModel
     );
 
+
     setGroupVisible(
         elements.seatingGroup,
         requiresSeating
     );
+
 
     if (elements.vehicle) {
 
@@ -1004,6 +1231,7 @@ function updateCategoryRequirements() {
             requiresModel;
 
     }
+
 
     if (elements.seating) {
 
@@ -1016,7 +1244,7 @@ function updateCategoryRequirements() {
 
 
 /* ============================================================
-   SET GROUP VISIBILITY
+   VISIBILITY
 ============================================================ */
 
 function setGroupVisible(
@@ -1027,6 +1255,7 @@ function setGroupVisible(
     if (!element) {
         return;
     }
+
 
     element.style.display =
         visible
@@ -1045,12 +1274,15 @@ function updateSeatingOptions() {
     const select =
         elements.seating;
 
+
     if (!select) {
         return;
     }
 
+
     const category =
         getSelectedCategoryObject();
+
 
     if (
         !category ||
@@ -1059,19 +1291,21 @@ function updateSeatingOptions() {
 
         select.innerHTML = "";
 
+
         addPlaceholder(
             select,
             "Select seats"
         );
 
-        select.value = "";
 
         state.selectedSeating =
             null;
 
+
         return;
 
     }
+
 
     const capacities =
         [
@@ -1098,19 +1332,24 @@ function updateSeatingOptions() {
                                 undefined
                     )
             )
-        ]
-        .sort(
-            (a, b) =>
-                Number(a) -
-                Number(b)
-        );
+        ];
+
+
+    capacities.sort(
+        (a, b) =>
+            Number(a) -
+            Number(b)
+    );
+
 
     select.innerHTML = "";
+
 
     addPlaceholder(
         select,
         "Select seats"
     );
+
 
     capacities.forEach(
         capacity => {
@@ -1120,11 +1359,14 @@ function updateSeatingOptions() {
                     "option"
                 );
 
+
             option.value =
                 capacity;
 
+
             option.textContent =
                 `${capacity} seats`;
+
 
             select.appendChild(
                 option
@@ -1137,53 +1379,55 @@ function updateSeatingOptions() {
 
 
 /* ============================================================
-   GET SELECTED CATEGORY
+   GET CATEGORY
 ============================================================ */
 
 function getSelectedCategoryObject() {
 
-    if (
-        !elements.category?.value
-    ) {
+    const value =
+        elements.category?.value;
 
+
+    if (!value) {
         return null;
-
     }
+
 
     return state.categories.find(
         category =>
             category.name ===
-            elements.category.value
+            value
     ) || null;
 
 }
 
 
 /* ============================================================
-   GET SELECTED ENERGY
+   GET ENERGY
 ============================================================ */
 
 function getSelectedEnergyObject() {
 
-    if (
-        !elements.energy?.value
-    ) {
+    const value =
+        elements.energy?.value;
 
+
+    if (!value) {
         return null;
-
     }
+
 
     return state.energySources.find(
         energy =>
             energy.name ===
-            elements.energy.value
+            value
     ) || null;
 
 }
 
 
 /* ============================================================
-   GET SELECTED SEATING
+   GET SEATING
 ============================================================ */
 
 function getSelectedSeating() {
@@ -1197,10 +1441,12 @@ function getSelectedSeating() {
 
     }
 
+
     const value =
         Number(
             elements.seating.value
         );
+
 
     return Number.isFinite(value)
         ? value
@@ -1219,21 +1465,27 @@ async function calculateFare() {
         return;
     }
 
+
     clearError();
+
 
     const category =
         getSelectedCategoryObject();
 
+
     const energy =
         getSelectedEnergyObject();
+
 
     const distance =
         Number(
             elements.distance?.value
         );
 
+
     const seating =
         getSelectedSeating();
+
 
     const vehicleId =
         Number(
@@ -1304,7 +1556,7 @@ async function calculateFare() {
 
 
     /* --------------------------------------------------------
-       BUILD REQUEST
+       REQUEST BODY
     -------------------------------------------------------- */
 
     const requestBody = {
@@ -1321,10 +1573,6 @@ async function calculateFare() {
     };
 
 
-    /*
-     * Only send seating when selected.
-     */
-
     if (seating !== null) {
 
         requestBody.seating_capacity =
@@ -1332,10 +1580,6 @@ async function calculateFare() {
 
     }
 
-
-    /*
-     * Send vehicle when selected.
-     */
 
     if (vehicleId) {
 
@@ -1352,7 +1596,7 @@ async function calculateFare() {
 
 
     /* --------------------------------------------------------
-       LOADING STATE
+       LOADING
     -------------------------------------------------------- */
 
     state.loading = true;
@@ -1368,7 +1612,8 @@ async function calculateFare() {
             await apiRequest(
                 API.calculate,
                 {
-                    method: "POST",
+                    method:
+                        "POST",
 
                     body:
                         JSON.stringify(
@@ -1418,10 +1663,12 @@ async function calculateFare() {
             error
         );
 
+
         showCalculationError(
             error.message ||
             "Unable to calculate fare."
         );
+
 
     } finally {
 
@@ -1532,6 +1779,21 @@ function displayCalculation(
 
 
     /* --------------------------------------------------------
+       VEHICLE
+    -------------------------------------------------------- */
+
+    if (elements.resultVehicle) {
+
+        elements.resultVehicle.textContent =
+            calculation.vehicle_name ||
+            calculation.vehicle ||
+            state.selectedVehicle?.name ||
+            "—";
+
+    }
+
+
+    /* --------------------------------------------------------
        CALCULATION METHOD
     -------------------------------------------------------- */
 
@@ -1546,7 +1808,50 @@ function displayCalculation(
 
 
     /* --------------------------------------------------------
-       FARE RULE INFORMATION
+       FARE BREAKDOWN
+    -------------------------------------------------------- */
+
+    if (elements.minimumFare) {
+
+        elements.minimumFare.textContent =
+            formatNumber(
+                calculation.minimum_fare
+            );
+
+    }
+
+
+    if (elements.additionalDistance) {
+
+        elements.additionalDistance.textContent =
+            formatNumber(
+                calculation.additional_distance_km
+            );
+
+    }
+
+
+    if (elements.additionalFare) {
+
+        elements.additionalFare.textContent =
+            formatNumber(
+                calculation.additional_fare
+            );
+
+    }
+
+
+    /* --------------------------------------------------------
+       SLABS
+    -------------------------------------------------------- */
+
+    displaySlabs(
+        calculation
+    );
+
+
+    /* --------------------------------------------------------
+       RULE NOTE
     -------------------------------------------------------- */
 
     if (elements.fareRuleNote) {
@@ -1560,7 +1865,16 @@ function displayCalculation(
 
 
     /* --------------------------------------------------------
-       SHOW SUCCESS
+       HERO
+    -------------------------------------------------------- */
+
+    updateHeroFromCalculation(
+        calculation
+    );
+
+
+    /* --------------------------------------------------------
+       SHOW
     -------------------------------------------------------- */
 
     showResultSuccess();
@@ -1569,7 +1883,112 @@ function displayCalculation(
 
 
 /* ============================================================
-   BUILD FARE RULE NOTE
+   SLAB BREAKDOWN
+============================================================ */
+
+function displaySlabs(
+    calculation
+) {
+
+    const container =
+        elements.slabBreakdown;
+
+
+    const section =
+        elements.slabSection;
+
+
+    if (!container) {
+        return;
+    }
+
+
+    container.innerHTML = "";
+
+
+    const slabs =
+        calculation.slabs ||
+        calculation.fare_slabs ||
+        calculation.breakdown ||
+        [];
+
+
+    if (
+        !Array.isArray(slabs) ||
+        slabs.length === 0
+    ) {
+
+        if (section) {
+
+            section.style.display =
+                "none";
+
+        }
+
+        return;
+
+    }
+
+
+    if (section) {
+
+        section.style.display =
+            "";
+
+    }
+
+
+    slabs.forEach(
+        (slab, index) => {
+
+            const row =
+                document.createElement(
+                    "div"
+                );
+
+
+            row.className =
+                "slab-row";
+
+
+            const name =
+                slab.name ||
+                slab.label ||
+                `Slab ${index + 1}`;
+
+
+            const amount =
+                slab.fare ??
+                slab.amount ??
+                slab.price ??
+                0;
+
+
+            row.innerHTML = `
+
+                <span>
+                    ${escapeHTML(name)}
+                </span>
+
+                <strong>
+                    ₹${formatNumber(amount)}
+                </strong>
+
+            `;
+
+
+            container.appendChild(
+                row
+            );
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   FARE RULE NOTE
 ============================================================ */
 
 function buildFareRuleNote(
@@ -1593,8 +2012,12 @@ function buildFareRuleNote(
     if (
         calculation.minimum_fare !==
             null &&
+        calculation.minimum_fare !==
+            undefined &&
         calculation.minimum_distance_km !==
-            null
+            null &&
+        calculation.minimum_distance_km !==
+            undefined
     ) {
 
         parts.push(
@@ -1611,8 +2034,12 @@ function buildFareRuleNote(
     if (
         calculation.additional_distance_km !==
             null &&
+        calculation.additional_distance_km !==
+            undefined &&
         calculation.additional_fare !==
-            null
+            null &&
+        calculation.additional_fare !==
+            undefined
     ) {
 
         parts.push(
@@ -1630,7 +2057,9 @@ function buildFareRuleNote(
         parts.length === 0
     ) {
 
-        return "Calculated using the applicable fare rule available in the Fare Keralam database.";
+        return (
+            "Calculated using the applicable fare rule available in the Fare Keralam database."
+        );
 
     }
 
@@ -1641,7 +2070,7 @@ function buildFareRuleNote(
 
 
 /* ============================================================
-   CALCULATION METHOD FORMATTER
+   CALCULATION METHOD
 ============================================================ */
 
 function formatCalculationMethod(
@@ -1654,8 +2083,12 @@ function formatCalculationMethod(
 
     }
 
-    return method
-        .replaceAll("_", " ")
+
+    return String(method)
+        .replaceAll(
+            "_",
+            " "
+        )
         .replace(
             /\b\w/g,
             letter =>
@@ -1666,7 +2099,7 @@ function formatCalculationMethod(
 
 
 /* ============================================================
-   NUMBER FORMATTING
+   NUMBER FORMAT
 ============================================================ */
 
 function formatNumber(
@@ -1676,6 +2109,7 @@ function formatNumber(
     const number =
         Number(value);
 
+
     if (
         !Number.isFinite(number)
     ) {
@@ -1684,11 +2118,15 @@ function formatNumber(
 
     }
 
+
     return number.toLocaleString(
         "en-IN",
         {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+            minimumFractionDigits:
+                2,
+
+            maximumFractionDigits:
+                2
         }
     );
 
@@ -1696,30 +2134,15 @@ function formatNumber(
 
 
 /* ============================================================
-   CURRENCY NUMBER
+   CURRENCY FORMAT
 ============================================================ */
 
 function formatCurrencyNumber(
     value
 ) {
 
-    const number =
-        Number(value);
-
-    if (
-        !Number.isFinite(number)
-    ) {
-
-        return "0.00";
-
-    }
-
-    return number.toLocaleString(
-        "en-IN",
-        {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }
+    return formatNumber(
+        value
     );
 
 }
@@ -1738,12 +2161,14 @@ function showResultEmpty() {
 
     }
 
+
     if (elements.resultSuccess) {
 
         elements.resultSuccess.style.display =
             "none";
 
     }
+
 
     if (elements.resultError) {
 
@@ -1764,12 +2189,14 @@ function showResultSuccess() {
 
     }
 
+
     if (elements.resultSuccess) {
 
         elements.resultSuccess.style.display =
             "";
 
     }
+
 
     if (elements.resultError) {
 
@@ -1778,9 +2205,15 @@ function showResultSuccess() {
 
     }
 
+
     elements.resultCard?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest"
+
+        behavior:
+            "smooth",
+
+        block:
+            "nearest"
+
     });
 
 }
@@ -1797,6 +2230,7 @@ function showCalculationError(
 
     }
 
+
     if (elements.resultEmpty) {
 
         elements.resultEmpty.style.display =
@@ -1804,12 +2238,14 @@ function showCalculationError(
 
     }
 
+
     if (elements.resultSuccess) {
 
         elements.resultSuccess.style.display =
             "none";
 
     }
+
 
     if (elements.resultError) {
 
@@ -1856,12 +2292,15 @@ function setCalculateLoading(
     const button =
         elements.calculateBtn;
 
+
     if (!button) {
         return;
     }
 
+
     button.disabled =
         loading;
+
 
     button.classList.toggle(
         "loading",
@@ -1873,6 +2312,7 @@ function setCalculateLoading(
         button.querySelector(
             ".button-text"
         );
+
 
     const buttonLoader =
         button.querySelector(
@@ -1903,16 +2343,13 @@ function setCalculateLoading(
 
 
 /* ============================================================
-   RESET CALCULATOR
+   RESET
 ============================================================ */
 
 function resetCalculator() {
 
-    if (elements.fareForm) {
+    elements.fareForm?.reset();
 
-        elements.fareForm.reset();
-
-    }
 
     state.selectedCategory =
         null;
@@ -1967,6 +2404,39 @@ function resetCalculator() {
 
     clearError();
 
+
+    if (elements.heroVehicle) {
+
+        elements.heroVehicle.textContent =
+            "Auto Rickshaw";
+
+    }
+
+
+    if (elements.heroDistance) {
+
+        elements.heroDistance.textContent =
+            "5.0 km";
+
+    }
+
+
+    if (elements.heroFare) {
+
+        elements.heroFare.textContent =
+            "—";
+
+    }
+
+
+    if (elements.heroEnergy) {
+
+        elements.heroEnergy.textContent =
+            "—";
+
+    }
+
+
     elements.distance?.focus();
 
 }
@@ -1982,13 +2452,10 @@ function setupDistanceInput() {
         return;
     }
 
+
     elements.distance.addEventListener(
         "input",
         () => {
-
-            /*
-             * Prevent negative values.
-             */
 
             if (
                 Number(
@@ -2001,10 +2468,6 @@ function setupDistanceInput() {
 
             }
 
-            /*
-             * Remove stale result after
-             * changing distance.
-             */
 
             if (
                 state.lastCalculation
@@ -2063,8 +2526,10 @@ function updateStatistics() {
     const categoryCount =
         state.categories.length;
 
+
     const energyCount =
         state.energySources.length;
+
 
     const vehicleCount =
         state.vehicles.length;
@@ -2113,19 +2578,29 @@ function setFooterStatus(
     online
 ) {
 
-    if (
-        elements.footerStatus
-    ) {
+    if (elements.footerStatus) {
 
         elements.footerStatus.textContent =
             message;
 
     }
 
+
+    if (elements.footerStatusDot) {
+
+        elements.footerStatusDot.classList.toggle(
+            "offline",
+            !online
+        );
+
+    }
+
+
     const statusDot =
         document.querySelector(
             ".status-dot"
         );
+
 
     if (statusDot) {
 
@@ -2140,32 +2615,68 @@ function setFooterStatus(
 
 
 /* ============================================================
-   PAGE LOADER
+   HERO API STATUS
 ============================================================ */
 
-function showPageLoader(
-    visible
+function updateHeroAPIStatus(
+    online
 ) {
 
+    const status =
+        elements.heroApiStatus;
+
+
+    if (!status) {
+        return;
+    }
+
+
+    status.classList.toggle(
+        "online",
+        online
+    );
+
+
+    status.classList.toggle(
+        "offline",
+        !online
+    );
+
+
+    const text =
+        status.lastChild;
+
+
+    /*
+     * Keep the existing "API" text.
+     * CSS can style the status using the classes.
+     */
+
+}
+
+
+/* ============================================================
+   HERO VEHICLE
+============================================================ */
+
+function updateHeroVehicle() {
+
     if (
-        !elements.pageLoader
+        !elements.heroVehicle
     ) {
 
         return;
 
     }
 
-    if (visible) {
 
-        elements.pageLoader.classList.remove(
-            "hidden"
-        );
+    if (
+        state.selectedVehicle
+    ) {
 
-    } else {
-
-        elements.pageLoader.classList.add(
-            "hidden"
-        );
+        elements.heroVehicle.textContent =
+            state.selectedVehicle.name ||
+            "Selected vehicle";
 
     }
 
@@ -2173,15 +2684,86 @@ function showPageLoader(
 
 
 /* ============================================================
-   GENERIC LOADING
+   HERO CALCULATION
 ============================================================ */
 
-function showLoading(
-    loading
+function updateHeroFromCalculation(
+    calculation
 ) {
 
-    state.loading =
-        loading;
+    if (elements.heroFare) {
+
+        elements.heroFare.textContent =
+            `₹${formatCurrencyNumber(
+                calculation.fare
+            )}`;
+
+    }
+
+
+    if (elements.heroDistance) {
+
+        elements.heroDistance.textContent =
+            `${formatNumber(
+                calculation.distance_km
+            )} km`;
+
+    }
+
+
+    if (elements.heroEnergy) {
+
+        elements.heroEnergy.textContent =
+            calculation.energy_source ||
+            "—";
+
+    }
+
+
+    if (elements.heroVehicle) {
+
+        elements.heroVehicle.textContent =
+            calculation.vehicle_name ||
+            calculation.vehicle ||
+            state.selectedVehicle?.name ||
+            calculation.category ||
+            "—";
+
+    }
+
+}
+
+
+/* ============================================================
+   PAGE LOADER
+============================================================ */
+
+function showPageLoader(
+    visible
+) {
+
+    const loader =
+        elements.pageLoader;
+
+
+    if (!loader) {
+        return;
+    }
+
+
+    if (visible) {
+
+        loader.classList.remove(
+            "hidden"
+        );
+
+    } else {
+
+        loader.classList.add(
+            "hidden"
+        );
+
+    }
 
 }
 
@@ -2210,10 +2792,12 @@ function setupNavigation() {
                 "open"
             );
 
+
             const isOpen =
                 elements.mainNav.classList.contains(
                     "open"
                 );
+
 
             elements.mobileMenuBtn.setAttribute(
                 "aria-label",
@@ -2222,10 +2806,12 @@ function setupNavigation() {
                     : "Open navigation"
             );
 
+
             const icon =
                 elements.mobileMenuBtn.querySelector(
                     "i"
                 );
+
 
             if (icon) {
 
@@ -2253,10 +2839,12 @@ function setupNavigation() {
                         "open"
                     );
 
+
                     const icon =
                         elements.mobileMenuBtn.querySelector(
                             "i"
                         );
+
 
                     if (icon) {
 
@@ -2303,16 +2891,20 @@ function updateActiveNavigation() {
             "main section[id]"
         );
 
+
     const links =
         $all(
             ".nav-link"
         );
 
+
     let current =
         "home";
 
+
     const scrollPosition =
-        window.scrollY + 150;
+        window.scrollY +
+        150;
 
 
     sections.forEach(
@@ -2340,6 +2932,7 @@ function updateActiveNavigation() {
                     "href"
                 );
 
+
             link.classList.toggle(
                 "active",
                 href ===
@@ -2353,7 +2946,7 @@ function updateActiveNavigation() {
 
 
 /* ============================================================
-   HEADER SCROLL EFFECT
+   HEADER SCROLL
 ============================================================ */
 
 function updateHeader() {
@@ -2361,6 +2954,7 @@ function updateHeader() {
     if (!elements.header) {
         return;
     }
+
 
     elements.header.classList.toggle(
         "scrolled",
@@ -2394,17 +2988,15 @@ function setCurrentYear() {
 
 let toastTimer = null;
 
+
 function showToast(
     message
 ) {
 
-    if (
-        !elements.toast
-    ) {
-
+    if (!elements.toast) {
         return;
-
     }
+
 
     if (
         elements.toastMessage
@@ -2414,6 +3006,7 @@ function showToast(
             message;
 
     }
+
 
     elements.toast.classList.add(
         "show"
@@ -2441,18 +3034,57 @@ function showToast(
 
 
 /* ============================================================
-   EXPOSE OPTIONAL DEBUG STATE
+   HTML ESCAPE
+============================================================ */
+
+function escapeHTML(
+    value
+) {
+
+    return String(value)
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+
+}
+
+
+/* ============================================================
+   DEBUG / PUBLIC API
 ============================================================ */
 
 window.FareKeralam = {
+
     state,
+
     API,
+
     calculateFare,
+
     resetCalculator,
+
     checkAPIHealth
+
 };
 
 
 /* ============================================================
-   END
+   END OF SCRIPT
 ============================================================ */
