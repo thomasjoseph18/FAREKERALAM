@@ -444,3 +444,180 @@ def data_status():
             status_code=500,
             detail=str(error)
         )
+        # ============================================================
+# FUEL PRICE UPDATE ENDPOINT
+# ============================================================
+
+from pydantic import BaseModel, Field
+
+
+UPDATE_TOKEN = os.getenv("FUEL_UPDATE_TOKEN")
+
+
+class FuelPriceUpdate(BaseModel):
+    fuel: str = Field(..., description="Petrol or Diesel")
+    price: float = Field(..., gt=0)
+    location: str = "Kerala"
+    district: str | None = None
+    price_date: date | None = None
+    source_reference: str
+
+
+@app.post("/api/admin/update-fuel-price")
+def update_fuel_price(
+    data: FuelPriceUpdate,
+    token: str = Query(...)
+):
+    """
+    Insert a verified petrol/diesel price into price_history.
+
+    This endpoint requires FUEL_UPDATE_TOKEN.
+    """
+
+    require_database()
+
+    # --------------------------------------------------------
+    # Security check
+    # --------------------------------------------------------
+
+    if not UPDATE_TOKEN:
+        raise HTTPException(
+            status_code=500,
+            detail="FUEL_UPDATE_TOKEN is not configured"
+        )
+
+    if token != UPDATE_TOKEN:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid update token"
+        )
+
+    # --------------------------------------------------------
+    # Validate fuel
+    # --------------------------------------------------------
+
+    fuel_name = data.fuel.strip().title()
+
+    if fuel_name not in ["Petrol", "Diesel"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Only Petrol and Diesel are supported currently"
+        )
+
+    # --------------------------------------------------------
+    # Find energy source
+    # --------------------------------------------------------
+
+    energy_response = (
+        supabase
+        .table("energy_sources")
+        .select("id,name,unit")
+        .eq("name", fuel_name)
+        .limit(1)
+        .execute()
+    )
+
+    if not energy_response.data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"{fuel_name} energy source not found"
+        )
+
+    energy_source = energy_response.data[0]
+
+    # --------------------------------------------------------
+    # Find PPAC source
+    # --------------------------------------------------------
+
+    source_response = (
+        supabase
+        .table("data_sources")
+        .select("id,name,url")
+        .eq(
+            "name",
+            "PPAC Petrol and Diesel RSP"
+        )
+        .limit(1)
+        .execute()
+    )
+
+    source_id = None
+
+    if source_response.data:
+        source_id = source_response.data[0]["id"]
+
+    # --------------------------------------------------------
+    # Date
+    # --------------------------------------------------------
+
+    effective_date = data.price_date or date.today()
+
+    # --------------------------------------------------------
+    # Prevent duplicate record
+    # --------------------------------------------------------
+
+    existing = (
+        supabase
+        .table("price_history")
+        .select("id")
+        .eq(
+            "energy_source_id",
+            energy_source["id"]
+        )
+        .eq(
+            "location",
+            data.location
+        )
+        .eq(
+            "district",
+            data.district
+        )
+        .eq(
+            "price_date",
+            str(effective_date)
+        )
+        .limit(1)
+        .execute()
+    )
+
+    if existing.data:
+        raise HTTPException(
+            status_code=409,
+            detail="A price record already exists for this fuel, location and date"
+        )
+
+    # --------------------------------------------------------
+    # Insert price
+    # --------------------------------------------------------
+
+    record = {
+        "energy_source_id": energy_source["id"],
+        "value": data.price,
+        "unit": energy_source["unit"],
+        "location": data.location,
+        "district": data.district,
+        "price_date": str(effective_date),
+        "source_id": source_id,
+        "source_reference": data.source_reference,
+        "retrieved_at": str(date.today()),
+    }
+
+    try:
+        response = (
+            supabase
+            .table("price_history")
+            .insert(record)
+            .execute()
+        )
+
+        return {
+            "success": True,
+            "message": f"{fuel_name} price stored successfully",
+            "record": response.data[0] if response.data else record
+        }
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
