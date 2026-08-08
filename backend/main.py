@@ -1,21 +1,41 @@
 import os
 from datetime import date
 
+import requests
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 from supabase import create_client, Client
+
+
+# ============================================================
+# ENVIRONMENT
+# ============================================================
 
 load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+UPDATE_TOKEN = os.getenv("FUEL_UPDATE_TOKEN")
+
+
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
 
 app = FastAPI(
     title="Fare Keralam API",
     description="Kerala fare and operating-cost calculation API",
     version="1.1.0"
 )
+
+
+# ============================================================
+# CORS
+# ============================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,6 +44,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ============================================================
+# SUPABASE
+# ============================================================
 
 supabase: Client | None = None
 
@@ -42,6 +67,10 @@ def require_database():
         )
 
 
+# ============================================================
+# ROOT
+# ============================================================
+
 @app.get("/")
 def root():
     return {
@@ -51,6 +80,10 @@ def root():
     }
 
 
+# ============================================================
+# HEALTH
+# ============================================================
+
 @app.get("/api/health")
 def health():
     return {
@@ -58,6 +91,10 @@ def health():
         "database_configured": supabase is not None
     }
 
+
+# ============================================================
+# VEHICLES
+# ============================================================
 
 @app.get("/api/vehicles")
 def get_vehicles():
@@ -84,6 +121,10 @@ def get_vehicles():
             detail=str(error)
         )
 
+
+# ============================================================
+# VEHICLE CATEGORIES
+# ============================================================
 
 @app.get("/api/categories")
 def get_categories():
@@ -112,6 +153,10 @@ def get_categories():
         )
 
 
+# ============================================================
+# ENERGY SOURCES
+# ============================================================
+
 @app.get("/api/energy-sources")
 def get_energy_sources():
     require_database()
@@ -138,6 +183,10 @@ def get_energy_sources():
             detail=str(error)
         )
 
+
+# ============================================================
+# PRICES
+# ============================================================
 
 @app.get("/api/prices")
 def get_prices(
@@ -172,7 +221,11 @@ def get_prices(
                 )
 
             energy_id = energy_response.data[0]["id"]
-            query = query.eq("energy_source_id", energy_id)
+
+            query = query.eq(
+                "energy_source_id",
+                energy_id
+            )
 
         response = query.execute()
 
@@ -191,6 +244,10 @@ def get_prices(
             detail=str(error)
         )
 
+
+# ============================================================
+# LATEST PRICES
+# ============================================================
 
 @app.get("/api/latest-prices")
 def get_latest_prices(
@@ -212,6 +269,7 @@ def get_latest_prices(
         latest = {}
 
         for item in response.data:
+
             key = (
                 item.get("energy_source_id"),
                 item.get("district")
@@ -235,6 +293,10 @@ def get_latest_prices(
             detail=str(error)
         )
 
+
+# ============================================================
+# DATA SOURCES
+# ============================================================
 
 @app.get("/api/sources")
 def get_sources():
@@ -261,6 +323,10 @@ def get_sources():
             detail=str(error)
         )
 
+
+# ============================================================
+# SOURCE STATUS
+# ============================================================
 
 @app.get("/api/source-status")
 def get_source_status():
@@ -292,6 +358,10 @@ def get_source_status():
         )
 
 
+# ============================================================
+# FARE RULES
+# ============================================================
+
 @app.get("/api/fare-rules")
 def get_fare_rules():
     require_database()
@@ -319,6 +389,10 @@ def get_fare_rules():
         )
 
 
+# ============================================================
+# FARE SLABS
+# ============================================================
+
 @app.get("/api/fare-slabs")
 def get_fare_slabs(
     fare_rule_id: int | None = Query(default=None)
@@ -334,7 +408,10 @@ def get_fare_slabs(
         )
 
         if fare_rule_id is not None:
-            query = query.eq("fare_rule_id", fare_rule_id)
+            query = query.eq(
+                "fare_rule_id",
+                fare_rule_id
+            )
 
         response = query.execute()
 
@@ -350,6 +427,10 @@ def get_fare_slabs(
             detail=str(error)
         )
 
+
+# ============================================================
+# COST DATA
+# ============================================================
 
 @app.get("/api/costs")
 def get_costs(
@@ -368,6 +449,7 @@ def get_costs(
         )
 
         if category:
+
             category_response = (
                 supabase
                 .table("cost_categories")
@@ -384,7 +466,11 @@ def get_costs(
                 )
 
             category_id = category_response.data[0]["id"]
-            query = query.eq("cost_category_id", category_id)
+
+            query = query.eq(
+                "cost_category_id",
+                category_id
+            )
 
         response = query.execute()
 
@@ -404,11 +490,16 @@ def get_costs(
         )
 
 
+# ============================================================
+# DATA STATUS
+# ============================================================
+
 @app.get("/api/data-status")
 def data_status():
     require_database()
 
     try:
+
         vehicles = (
             supabase
             .table("vehicles")
@@ -444,21 +535,30 @@ def data_status():
             status_code=500,
             detail=str(error)
         )
+
+
 # ============================================================
-# FUEL PRICE UPDATE ENDPOINT
+# FUEL PRICE UPDATE
 # ============================================================
-
-from pydantic import BaseModel, Field
-
-UPDATE_TOKEN = os.getenv("FUEL_UPDATE_TOKEN")
-
 
 class FuelPriceUpdate(BaseModel):
-    fuel: str = Field(..., description="Petrol or Diesel")
-    price: float = Field(..., gt=0)
+
+    fuel: str = Field(
+        ...,
+        description="Petrol or Diesel"
+    )
+
+    price: float = Field(
+        ...,
+        gt=0
+    )
+
     location: str = "Kerala"
+
     district: str | None = None
+
     price_date: date | None = None
+
     source_reference: str
 
 
@@ -468,14 +568,16 @@ def update_fuel_price(
     token: str = Query(...)
 ):
     """
-    Insert a verified petrol/diesel price into price_history.
+    Insert a verified petrol/diesel price
+    into price_history.
+
     Requires FUEL_UPDATE_TOKEN.
     """
 
     require_database()
 
     # --------------------------------------------------------
-    # Security
+    # SECURITY
     # --------------------------------------------------------
 
     if not UPDATE_TOKEN:
@@ -491,19 +593,25 @@ def update_fuel_price(
         )
 
     # --------------------------------------------------------
-    # Validate fuel
+    # VALIDATE FUEL
     # --------------------------------------------------------
 
     fuel_name = data.fuel.strip().title()
 
-    if fuel_name not in ["Petrol", "Diesel"]:
+    if fuel_name not in [
+        "Petrol",
+        "Diesel"
+    ]:
         raise HTTPException(
             status_code=400,
-            detail="Only Petrol and Diesel are supported currently"
+            detail=(
+                "Only Petrol and Diesel "
+                "are supported currently"
+            )
         )
 
     # --------------------------------------------------------
-    # Find energy source
+    # FIND ENERGY SOURCE
     # --------------------------------------------------------
 
     energy_response = (
@@ -518,13 +626,16 @@ def update_fuel_price(
     if not energy_response.data:
         raise HTTPException(
             status_code=404,
-            detail=f"{fuel_name} energy source not found"
+            detail=(
+                f"{fuel_name} energy source "
+                "not found"
+            )
         )
 
     energy_source = energy_response.data[0]
 
     # --------------------------------------------------------
-    # Find cost category
+    # FIND COST CATEGORY
     # --------------------------------------------------------
 
     category_response = (
@@ -539,13 +650,16 @@ def update_fuel_price(
     if not category_response.data:
         raise HTTPException(
             status_code=404,
-            detail=f"{fuel_name} cost category not found"
+            detail=(
+                f"{fuel_name} cost category "
+                "not found"
+            )
         )
 
     cost_category = category_response.data[0]
 
     # --------------------------------------------------------
-    # Find PPAC source
+    # FIND PPAC SOURCE
     # --------------------------------------------------------
 
     source_response = (
@@ -569,13 +683,16 @@ def update_fuel_price(
     source_id = source_response.data[0]["id"]
 
     # --------------------------------------------------------
-    # Date
+    # DATE
     # --------------------------------------------------------
 
-    effective_date = data.price_date or date.today()
+    effective_date = (
+        data.price_date
+        or date.today()
+    )
 
     # --------------------------------------------------------
-    # Check duplicate
+    # DUPLICATE CHECK
     # --------------------------------------------------------
 
     existing_query = (
@@ -601,44 +718,72 @@ def update_fuel_price(
     )
 
     if data.district is None:
+
         existing_query = existing_query.is_(
             "district",
             "null"
         )
+
     else:
+
         existing_query = existing_query.eq(
             "district",
             data.district
         )
 
-    existing = existing_query.limit(1).execute()
+    existing = (
+        existing_query
+        .limit(1)
+        .execute()
+    )
 
     if existing.data:
+
         return {
             "success": True,
             "status": "unchanged",
             "message": (
-                "A price record already exists for "
-                "this fuel, location and date"
+                "A price record already exists "
+                "for this fuel, location and date"
             ),
             "record": existing.data[0]
         }
 
     # --------------------------------------------------------
-    # Insert price
+    # INSERT PRICE
     # --------------------------------------------------------
 
     record = {
-        "cost_category_id": cost_category["id"],
-        "energy_source_id": energy_source["id"],
-        "value": data.price,
-        "unit": energy_source["unit"],
-        "location": data.location,
-        "district": data.district,
-        "price_date": str(effective_date),
-        "source_id": source_id,
-        "source_reference": data.source_reference,
-        "retrieved_at": str(date.today())
+
+        "cost_category_id":
+            cost_category["id"],
+
+        "energy_source_id":
+            energy_source["id"],
+
+        "value":
+            data.price,
+
+        "unit":
+            energy_source["unit"],
+
+        "location":
+            data.location,
+
+        "district":
+            data.district,
+
+        "price_date":
+            str(effective_date),
+
+        "source_id":
+            source_id,
+
+        "source_reference":
+            data.source_reference,
+
+        "retrieved_at":
+            str(date.today())
     }
 
     try:
@@ -651,11 +796,16 @@ def update_fuel_price(
         )
 
         return {
+
             "success": True,
+
             "status": "changed",
+
             "message": (
-                f"{fuel_name} price stored successfully"
+                f"{fuel_name} price "
+                "stored successfully"
             ),
+
             "record": (
                 response.data[0]
                 if response.data
@@ -668,34 +818,40 @@ def update_fuel_price(
         raise HTTPException(
             status_code=500,
             detail=str(error)
-        )  
-        # ============================================================
-# PPAC SOURCE TEST
+        )
+
+
+# ============================================================
+# PPAC SOURCE
 # ============================================================
 
-import requests
-from bs4 import BeautifulSoup
-
-
 PPAC_URL = (
-    "https://ppac.gov.in/retail-selling-price-rsp-of-petrol-diesel-and-domestic-lpg/"
+    "https://ppac.gov.in/"
+    "retail-selling-price-rsp-of-petrol-diesel-and-domestic-lpg/"
     "price-build-up-of-petrol-and-diesel"
 )
 
+
+# ============================================================
+# PPAC CONNECTION TEST
+# ============================================================
 
 @app.get("/api/admin/test-ppac")
 def test_ppac(
     token: str = Query(...)
 ):
     """
-    Read-only test of the official PPAC petrol/diesel page.
-    Does NOT write anything to the database.
+    Read-only test of the official PPAC page.
+    Does NOT write to the database.
     """
 
     if not UPDATE_TOKEN:
         raise HTTPException(
             status_code=500,
-            detail="FUEL_UPDATE_TOKEN is not configured"
+            detail=(
+                "FUEL_UPDATE_TOKEN "
+                "is not configured"
+            )
         )
 
     if token != UPDATE_TOKEN:
@@ -705,6 +861,7 @@ def test_ppac(
         )
 
     try:
+
         response = requests.get(
             PPAC_URL,
             timeout=30,
@@ -712,6 +869,15 @@ def test_ppac(
                 "User-Agent": (
                     "Mozilla/5.0 "
                     "(Fare Keralam official data updater)"
+                ),
+                "Accept": (
+                    "text/html,"
+                    "application/xhtml+xml,"
+                    "application/xml;q=0.9,"
+                    "*/*;q=0.8"
+                ),
+                "Accept-Language": (
+                    "en-IN,en;q=0.9"
                 )
             }
         )
@@ -725,21 +891,53 @@ def test_ppac(
 
         tables = soup.find_all("table")
 
+        page_text = soup.get_text(
+            " ",
+            strip=True
+        )
+
         return {
+
             "success": True,
-            "status_code": response.status_code,
-            "page_title": soup.title.get_text(strip=True)
-            if soup.title
-            else None,
-            "table_count": len(tables),
-            "page_size": len(response.text)
+
+            "status_code":
+                response.status_code,
+
+            "final_url":
+                response.url,
+
+            "page_title": (
+                soup.title.get_text(
+                    strip=True
+                )
+                if soup.title
+                else None
+            ),
+
+            "table_count":
+                len(tables),
+
+            "page_size":
+                len(response.text),
+
+            "contains_petrol":
+                "Petrol" in page_text,
+
+            "contains_diesel":
+                "Diesel" in page_text,
+
+            "contains_kerala":
+                "Kerala" in page_text
         }
 
     except requests.RequestException as error:
 
         raise HTTPException(
             status_code=502,
-            detail=f"PPAC request failed: {str(error)}"
+            detail=(
+                f"PPAC request failed: "
+                f"{str(error)}"
+            )
         )
 
     except Exception as error:
@@ -748,8 +946,10 @@ def test_ppac(
             status_code=500,
             detail=str(error)
         )
-        # ============================================================
-# PPAC DATA STRUCTURE DIAGNOSTIC
+
+
+# ============================================================
+# PPAC STRUCTURE DIAGNOSTIC
 # ============================================================
 
 @app.get("/api/admin/inspect-ppac")
@@ -757,14 +957,21 @@ def inspect_ppac(
     token: str = Query(...)
 ):
     """
-    Read-only diagnostic.
+    Read-only PPAC diagnostic.
+
+    This endpoint examines the page structure
+    so we can build the automatic extractor safely.
+
     Does NOT write to the database.
     """
 
     if not UPDATE_TOKEN:
         raise HTTPException(
             status_code=500,
-            detail="FUEL_UPDATE_TOKEN is not configured"
+            detail=(
+                "FUEL_UPDATE_TOKEN "
+                "is not configured"
+            )
         )
 
     if token != UPDATE_TOKEN:
@@ -774,6 +981,7 @@ def inspect_ppac(
         )
 
     try:
+
         response = requests.get(
             PPAC_URL,
             timeout=30,
@@ -781,6 +989,15 @@ def inspect_ppac(
                 "User-Agent": (
                     "Mozilla/5.0 "
                     "(Fare Keralam official data updater)"
+                ),
+                "Accept": (
+                    "text/html,"
+                    "application/xhtml+xml,"
+                    "application/xml;q=0.9,"
+                    "*/*;q=0.8"
+                ),
+                "Accept-Language": (
+                    "en-IN,en;q=0.9"
                 )
             }
         )
@@ -794,43 +1011,130 @@ def inspect_ppac(
             "html.parser"
         )
 
+        # ----------------------------------------------------
+        # LINKS
+        # ----------------------------------------------------
+
         links = []
 
-        for link in soup.find_all("a", href=True):
-            text = link.get_text(" ", strip=True)
+        for link in soup.find_all(
+            "a",
+            href=True
+        ):
+
+            text = link.get_text(
+                " ",
+                strip=True
+            )
+
             href = link.get("href")
 
             if text or href:
+
                 links.append({
                     "text": text[:200],
                     "href": href
                 })
 
+        # ----------------------------------------------------
+        # SCRIPTS
+        # ----------------------------------------------------
+
         scripts = []
 
-        for script in soup.find_all("script", src=True):
-            scripts.append(script.get("src"))
+        for script in soup.find_all(
+            "script",
+            src=True
+        ):
+
+            scripts.append(
+                script.get("src")
+            )
+
+        # ----------------------------------------------------
+        # TABLES
+        # ----------------------------------------------------
+
+        tables = []
+
+        for index, table in enumerate(
+            soup.find_all("table")[:20]
+        ):
+
+            rows = []
+
+            for row in table.find_all("tr")[:20]:
+
+                cells = [
+                    cell.get_text(
+                        " ",
+                        strip=True
+                    )
+                    for cell in row.find_all(
+                        ["th", "td"]
+                    )
+                ]
+
+                if cells:
+                    rows.append(cells)
+
+            tables.append({
+                "table_index": index,
+                "rows": rows
+            })
+
+        # ----------------------------------------------------
+        # RETURN
+        # ----------------------------------------------------
 
         return {
+
             "success": True,
-            "status_code": response.status_code,
+
+            "status_code":
+                response.status_code,
+
+            "final_url":
+                response.url,
+
             "page_title": (
-                soup.title.get_text(strip=True)
+                soup.title.get_text(
+                    strip=True
+                )
                 if soup.title
                 else None
             ),
-            "html_size": len(html),
-            "link_count": len(links),
-            "script_count": len(scripts),
-            "links": links[:100],
-            "scripts": scripts[:100]
+
+            "html_size":
+                len(html),
+
+            "link_count":
+                len(links),
+
+            "script_count":
+                len(scripts),
+
+            "table_count":
+                len(tables),
+
+            "links":
+                links[:100],
+
+            "scripts":
+                scripts[:100],
+
+            "tables":
+                tables
         }
 
     except requests.RequestException as error:
 
         raise HTTPException(
             status_code=502,
-            detail=f"PPAC request failed: {str(error)}"
+            detail=(
+                f"PPAC request failed: "
+                f"{str(error)}"
+            )
         )
 
     except Exception as error:
@@ -839,108 +1143,8 @@ def inspect_ppac(
             status_code=500,
             detail=str(error)
         )
+
+
 # ============================================================
-# AUTOMATIC FUEL PRICE FETCHER - V1
-# READ-ONLY
+# END
 # ============================================================
-
-IOCL_PRICE_URL = "https://www.iocl.com/petrol-diesel-price"
-
-
-def fetch_iocl_fuel_prices():
-    """
-    Fetch petrol and diesel prices from the official
-    IndianOil petrol/diesel price page.
-
-    READ-ONLY:
-    This function does not modify the database.
-    """
-
-    try:
-        response = requests.get(
-            IOCL_PRICE_URL,
-            timeout=30,
-            allow_redirects=True,
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) "
-                    "Chrome/131.0.0.0 Safari/537.36"
-                ),
-                "Accept": (
-                    "text/html,application/xhtml+xml,"
-                    "application/xml;q=0.9,*/*;q=0.8"
-                ),
-                "Accept-Language": "en-IN,en;q=0.9",
-            }
-        )
-
-        soup = BeautifulSoup(
-            response.text,
-            "html.parser"
-        )
-
-        page_text = soup.get_text(
-            " ",
-            strip=True
-        )
-
-        return {
-"success": True,
-"source": IOCL_PRICE_URL,
-"status_code": response.status_code,
-"final_url": response.url,
-"page_size": len(response.text),
-"page_title": (
-soup.title.get_text(strip=True)
-if soup.title
-else None
-),
-"redirect_history": [
-{
-"status_code": r.status_code,
-"url": r.url,
-"location": r.headers.get("Location")
-}
-for r in response.history
-],
-"response_location": response.headers.get("Location"),
-"contains_petrol": "Petrol" in page_text,
-"contains_diesel": "Diesel" in page_text
-}
-    except requests.RequestException as error:
-        raise HTTPException(
-            status_code=502,
-            detail=f"IndianOil request failed: {str(error)}"
-        )
-
-    except Exception as error:
-        raise HTTPException(
-            status_code=500,
-            detail=str(error)
-        )
-
-
-@app.get("/api/admin/test-iocl")
-def test_iocl(
-    token: str = Query(...)
-):
-    """
-    Read-only IndianOil connection test.
-    Does NOT write to the database.
-    """
-
-    if not UPDATE_TOKEN:
-        raise HTTPException(
-            status_code=500,
-            detail="FUEL_UPDATE_TOKEN is not configured"
-        )
-
-    if token != UPDATE_TOKEN:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid update token"
-        )
-
-    return fetch_iocl_fuel_prices()
