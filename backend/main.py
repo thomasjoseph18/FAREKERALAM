@@ -839,7 +839,7 @@ def inspect_ppac(
             status_code=500,
             detail=str(error)
         )
- # ============================================================
+# ============================================================
 # AUTOMATIC FUEL PRICE FETCHER - V1
 # READ-ONLY
 # ============================================================
@@ -856,7 +856,7 @@ def fetch_iocl_fuel_prices():
     This function does not modify the database.
     """
 
-        try:
+    try:
         response = requests.get(
             IOCL_PRICE_URL,
             timeout=30,
@@ -876,8 +876,6 @@ def fetch_iocl_fuel_prices():
             }
         )
 
-        response.raise_for_status()
-
         soup = BeautifulSoup(
             response.text,
             "html.parser"
@@ -889,31 +887,29 @@ def fetch_iocl_fuel_prices():
         )
 
         return {
-    "success": True,
-    "source": IOCL_PRICE_URL,
-    "status_code": response.status_code,
-    "page_size": len(response.text),
-    "page_title": (
-        soup.title.get_text(strip=True)
-        if soup.title
-        else None
-    ),
-    "redirect_location": response.headers.get(
-        "Location"
-    ),
-    "contains_petrol": "Petrol" in page_text,
-    "contains_diesel": "Diesel" in page_text
-}
+            "success": True,
+            "source": IOCL_PRICE_URL,
+            "status_code": response.status_code,
+            "page_size": len(response.text),
+            "page_title": (
+                soup.title.get_text(strip=True)
+                if soup.title
+                else None
+            ),
+            "redirect_location": response.headers.get(
+                "Location"
+            ),
+            "contains_petrol": "Petrol" in page_text,
+            "contains_diesel": "Diesel" in page_text
+        }
 
     except requests.RequestException as error:
-
         raise HTTPException(
             status_code=502,
             detail=f"IndianOil request failed: {str(error)}"
         )
 
     except Exception as error:
-
         raise HTTPException(
             status_code=500,
             detail=str(error)
@@ -941,4 +937,4 @@ def test_iocl(
             detail="Invalid update token"
         )
 
-    return fetch_iocl_fuel_prices()       
+    return fetch_iocl_fuel_prices()
