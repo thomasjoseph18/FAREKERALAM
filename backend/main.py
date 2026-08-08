@@ -1211,11 +1211,15 @@ def calculate_fare(
             if base_fare is None:
                 base_fare = fare_rule.get("min_fare")
 
-            base_distance = (
-                fare_rule.get("base_distance_km")
-                if fare_rule.get("base_distance_km") is not None
-                else fare_rule.get("base_distance")
-            )
+           base_distance = (
+    fare_rule.get("minimum_distance_km")
+    if fare_rule.get("minimum_distance_km") is not None
+    else (
+        fare_rule.get("base_distance_km")
+        if fare_rule.get("base_distance_km") is not None
+        else fare_rule.get("base_distance")
+    )
+)
 
             per_km = (
                 fare_rule.get("per_km_rate")
