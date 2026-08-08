@@ -860,7 +860,7 @@ def fetch_iocl_fuel_prices():
         response = requests.get(
             IOCL_PRICE_URL,
             timeout=30,
-            allow_redirects=False,
+            allow_redirects=True,
             headers={
                 "User-Agent": (
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
