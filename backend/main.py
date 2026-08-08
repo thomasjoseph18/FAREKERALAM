@@ -669,3 +669,82 @@ def update_fuel_price(
             status_code=500,
             detail=str(error)
         )  
+        # ============================================================
+# PPAC SOURCE TEST
+# ============================================================
+
+import requests
+from bs4 import BeautifulSoup
+
+
+PPAC_URL = (
+    "https://ppac.gov.in/retail-selling-price-rsp-of-petrol-diesel-and-domestic-lpg/"
+    "price-build-up-of-petrol-and-diesel"
+)
+
+
+@app.get("/api/admin/test-ppac")
+def test_ppac(
+    token: str = Query(...)
+):
+    """
+    Read-only test of the official PPAC petrol/diesel page.
+    Does NOT write anything to the database.
+    """
+
+    if not UPDATE_TOKEN:
+        raise HTTPException(
+            status_code=500,
+            detail="FUEL_UPDATE_TOKEN is not configured"
+        )
+
+    if token != UPDATE_TOKEN:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid update token"
+        )
+
+    try:
+        response = requests.get(
+            PPAC_URL,
+            timeout=30,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 "
+                    "(Fare Keralam official data updater)"
+                )
+            }
+        )
+
+        response.raise_for_status()
+
+        soup = BeautifulSoup(
+            response.text,
+            "html.parser"
+        )
+
+        tables = soup.find_all("table")
+
+        return {
+            "success": True,
+            "status_code": response.status_code,
+            "page_title": soup.title.get_text(strip=True)
+            if soup.title
+            else None,
+            "table_count": len(tables),
+            "page_size": len(response.text)
+        }
+
+    except requests.RequestException as error:
+
+        raise HTTPException(
+            status_code=502,
+            detail=f"PPAC request failed: {str(error)}"
+        )
+
+    except Exception as error:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
