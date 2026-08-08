@@ -1,6 +1,6 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from supabase import create_client, Client
@@ -48,3 +48,33 @@ def health():
         "status": "healthy",
         "database_configured": supabase is not None
     }
+
+
+@app.get("/api/vehicles")
+def get_vehicles():
+    if supabase is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Database is not configured"
+        )
+
+    try:
+        response = (
+            supabase
+            .table("vehicles")
+            .select("*")
+            .eq("active", True)
+            .execute()
+        )
+
+        return {
+            "success": True,
+            "count": len(response.data),
+            "vehicles": response.data
+        }
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
