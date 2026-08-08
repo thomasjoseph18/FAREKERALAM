@@ -72,7 +72,6 @@ app.add_middleware(
 # ============================================================
 
 def get_connection():
-
     if not DATABASE_URL:
         raise HTTPException(
             status_code=500,
@@ -87,11 +86,7 @@ def get_connection():
         )
 
     except Exception as exc:
-
-        print(
-            "Database connection error:",
-            exc,
-        )
+        print("Database connection error:", exc)
 
         raise HTTPException(
             status_code=500,
@@ -103,13 +98,10 @@ def fetch_one(
     query: str,
     params=(),
 ):
-
     conn = get_connection()
 
     try:
-
         with conn.cursor() as cursor:
-
             cursor.execute(
                 query,
                 params,
@@ -118,7 +110,6 @@ def fetch_one(
             return cursor.fetchone()
 
     finally:
-
         conn.close()
 
 
@@ -126,13 +117,10 @@ def fetch_all(
     query: str,
     params=(),
 ):
-
     conn = get_connection()
 
     try:
-
         with conn.cursor() as cursor:
-
             cursor.execute(
                 query,
                 params,
@@ -141,7 +129,6 @@ def fetch_all(
             return cursor.fetchall()
 
     finally:
-
         conn.close()
 
 
@@ -186,7 +173,6 @@ def normalize_name(
     }
 
     for old, new in replacements.items():
-
         value = value.replace(
             old,
             new,
@@ -357,18 +343,10 @@ def canonical_energy_name(
 def root():
 
     return {
-
-        "success":
-            True,
-
-        "name":
-            "Fare Keralam API",
-
-        "version":
-            "1.3.0",
-
-        "status":
-            "online",
+        "success": True,
+        "name": "Fare Keralam API",
+        "version": "1.3.0",
+        "status": "online",
     }
 
 
@@ -411,7 +389,6 @@ def health():
             )
 
     return {
-
         "status":
             "healthy"
             if database_connected
@@ -453,15 +430,9 @@ def get_categories():
         )
 
         return {
-
-            "success":
-                True,
-
-            "count":
-                len(categories),
-
-            "categories":
-                categories,
+            "success": True,
+            "count": len(categories),
+            "categories": categories,
         }
 
     except Exception as exc:
@@ -504,15 +475,9 @@ def get_energy_sources():
         )
 
         return {
-
-            "success":
-                True,
-
-            "count":
-                len(energy_sources),
-
-            "energy_sources":
-                energy_sources,
+            "success": True,
+            "count": len(energy_sources),
+            "energy_sources": energy_sources,
         }
 
     except Exception as exc:
@@ -535,25 +500,6 @@ def get_energy_sources():
 def find_energy_source(
     energy_name: Optional[str],
 ):
-    """
-    Reliable energy-source lookup.
-
-    Handles:
-
-        Petrol
-        petrol
-        PETROL
-        petrol fuel
-        gasoline
-        Diesel
-        diesel
-        CNG
-        compressed natural gas
-        LPG
-        electric
-        EV
-        hybrid
-    """
 
     if not energy_name:
         return None
@@ -561,10 +507,6 @@ def find_energy_source(
     canonical = canonical_energy_name(
         energy_name
     )
-
-    # --------------------------------------------------------
-    # FIRST: DIRECT DATABASE LOOKUP
-    # --------------------------------------------------------
 
     query = """
         SELECT
@@ -589,12 +531,7 @@ def find_energy_source(
         )
 
         if energy:
-
             return energy
-
-        # ----------------------------------------------------
-        # SECOND: NORMALIZED DATABASE COMPARISON
-        # ----------------------------------------------------
 
         all_sources_query = """
             SELECT
@@ -627,7 +564,6 @@ def find_energy_source(
                 database_normalized
                 == requested_normalized
             ):
-
                 return source
 
         return None
@@ -673,10 +609,6 @@ def get_vehicles(
 
     params = []
 
-    # --------------------------------------------------------
-    # CATEGORY
-    # --------------------------------------------------------
-
     if category:
 
         category = canonical_category_name(
@@ -696,10 +628,6 @@ def get_vehicles(
         params.append(
             category
         )
-
-    # --------------------------------------------------------
-    # ENERGY
-    # --------------------------------------------------------
 
     if energy:
 
@@ -727,10 +655,6 @@ def get_vehicles(
             energy_record["id"]
         )
 
-    # --------------------------------------------------------
-    # SEATING
-    # --------------------------------------------------------
-
     if seating_capacity is not None:
 
         query += """
@@ -753,15 +677,9 @@ def get_vehicles(
         )
 
         return {
-
-            "success":
-                True,
-
-            "count":
-                len(vehicles),
-
-            "vehicles":
-                vehicles,
+            "success": True,
+            "count": len(vehicles),
+            "vehicles": vehicles,
         }
 
     except Exception as exc:
@@ -790,15 +708,11 @@ def get_vehicle_options():
             es.name AS energy,
             v.seating_capacity
         FROM vehicles v
-
         INNER JOIN vehicle_categories vc
             ON vc.id = v.category_id
-
         INNER JOIN energy_sources es
             ON es.id = v.energy_source_id
-
         WHERE v.active = TRUE
-
         ORDER BY
             vc.id,
             es.id,
@@ -815,54 +729,30 @@ def get_vehicle_options():
 
         for row in rows:
 
-            category = row[
-                "category"
-            ]
-
-            energy = row[
-                "energy"
-            ]
-
-            seating = row[
-                "seating_capacity"
-            ]
+            category = row["category"]
+            energy = row["energy"]
+            seating = row["seating_capacity"]
 
             if category not in result:
+                result[category] = {}
 
-                result[
-                    category
-                ] = {}
-
-            if energy not in result[
-                category
-            ]:
-
-                result[
-                    category
-                ][energy] = []
+            if energy not in result[category]:
+                result[category][energy] = []
 
             if seating is not None:
 
                 if (
                     seating
-                    not in result[
-                        category
-                    ][energy]
+                    not in result[category][energy]
                 ):
 
-                    result[
-                        category
-                    ][energy].append(
+                    result[category][energy].append(
                         seating
                     )
 
         return {
-
-            "success":
-                True,
-
-            "categories":
-                result,
+            "success": True,
+            "categories": result,
         }
 
     except Exception as exc:
@@ -897,6 +787,14 @@ class FareCalculationRequest(
             "Petrol, Diesel, CNG, "
             "Electricity or Hybrid"
         ),
+    )
+
+    # --------------------------------------------------------
+    # ALIAS SUPPORT
+    # --------------------------------------------------------
+    energy: Optional[str] = Field(
+        None,
+        description="Alias for energy_source",
     )
 
     distance_km: float = Field(
@@ -959,10 +857,6 @@ def find_vehicle(
     seating_capacity: Optional[int],
     vehicle_id: Optional[int],
 ):
-
-    # --------------------------------------------------------
-    # DIRECT VEHICLE ID
-    # --------------------------------------------------------
 
     if vehicle_id is not None:
 
@@ -1034,10 +928,6 @@ def find_vehicle(
 
         return vehicle
 
-    # --------------------------------------------------------
-    # CATEGORY + SEATING
-    # --------------------------------------------------------
-
     if seating_capacity is not None:
 
         query = """
@@ -1079,10 +969,6 @@ def find_vehicle(
             query,
             params,
         )
-
-    # --------------------------------------------------------
-    # CATEGORY + ENERGY
-    # --------------------------------------------------------
 
     query = """
         SELECT
@@ -1267,54 +1153,29 @@ def calculate_from_slabs(
         minimum_distance_km
     )
 
-    if (
-        distance_km
-        <= minimum_distance_km
-    ):
+    if distance_km <= minimum_distance_km:
 
         return {
-
-            "fare":
-                minimum_fare,
-
-            "base_fare":
-                minimum_fare,
-
-            "additional_fare":
-                0.0,
-
-            "additional_distance_km":
-                0.0,
-
-            "slab_breakdown":
-                [],
+            "fare": minimum_fare,
+            "base_fare": minimum_fare,
+            "additional_fare": 0.0,
+            "additional_distance_km": 0.0,
+            "slab_breakdown": [],
         }
 
     if not slabs:
 
         return {
-
-            "fare":
-                minimum_fare,
-
-            "base_fare":
-                minimum_fare,
-
-            "additional_fare":
-                0.0,
-
+            "fare": minimum_fare,
+            "base_fare": minimum_fare,
+            "additional_fare": 0.0,
             "additional_distance_km":
-                distance_km
-                - minimum_distance_km,
-
-            "slab_breakdown":
-                [],
+                distance_km - minimum_distance_km,
+            "slab_breakdown": [],
         }
 
     total = minimum_fare
-
     additional_fare = 0.0
-
     slab_breakdown = []
 
     for slab in slabs:
@@ -1348,11 +1209,8 @@ def calculate_from_slabs(
         )
 
         if to_km is None:
-
             slab_end = distance_km
-
         else:
-
             slab_end = min(
                 distance_km,
                 to_km,
@@ -1370,10 +1228,7 @@ def calculate_from_slabs(
             slab_distance * rate
         )
 
-        additional_fare += (
-            slab_amount
-        )
-
+        additional_fare += slab_amount
         total += slab_amount
 
         slab_breakdown.append(
@@ -1425,10 +1280,7 @@ def calculate_from_slabs(
             * last_rate
         )
 
-        additional_fare += (
-            extra_amount
-        )
-
+        additional_fare += extra_amount
         total += extra_amount
 
         slab_breakdown.append(
@@ -1440,9 +1292,7 @@ def calculate_from_slabs(
                     ),
 
                 "to_km":
-                    money(
-                        distance_km
-                    ),
+                    money(distance_km),
 
                 "distance_km":
                     money(
@@ -1461,21 +1311,11 @@ def calculate_from_slabs(
         )
 
     return {
-
-        "fare":
-            total,
-
-        "base_fare":
-            minimum_fare,
-
-        "additional_fare":
-            additional_fare,
-
-        "additional_distance_km":
-            required_distance,
-
-        "slab_breakdown":
-            slab_breakdown,
+        "fare": total,
+        "base_fare": minimum_fare,
+        "additional_fare": additional_fare,
+        "additional_distance_km": required_distance,
+        "slab_breakdown": slab_breakdown,
     }
 
 
@@ -1545,9 +1385,7 @@ def fallback_fare(
         )
 
     return {
-
-        "fare":
-            fare,
+        "fare": fare,
 
         "base_fare":
             minimum_fare,
@@ -1611,14 +1449,28 @@ def calculate_fare(
     # 2. ENERGY SOURCE
     # ========================================================
 
+    # Supports both:
+    #   "energy_source": "Petrol"
+    # and
+    #   "energy": "Petrol"
+
     energy = find_energy_source(
         request.energy_source
+        or request.energy
     )
 
     if (
-        request.energy_source
+        (
+            request.energy_source
+            or request.energy
+        )
         and not energy
     ):
+
+        requested_energy = (
+            request.energy_source
+            or request.energy
+        )
 
         raise HTTPException(
             status_code=404,
@@ -1627,11 +1479,11 @@ def calculate_fare(
                     "Energy source not found",
 
                 "requested":
-                    request.energy_source,
+                    requested_energy,
 
                 "normalized":
                     normalize_name(
-                        request.energy_source
+                        requested_energy
                     ),
             },
         )
@@ -1647,18 +1499,10 @@ def calculate_fare(
     # ========================================================
 
     vehicle = find_vehicle(
-
-        category_id=
-            category_id,
-
-        energy_source_id=
-            energy_id,
-
-        seating_capacity=
-            request.seating_capacity,
-
-        vehicle_id=
-            request.vehicle_id,
+        category_id=category_id,
+        energy_source_id=energy_id,
+        seating_capacity=request.seating_capacity,
+        vehicle_id=request.vehicle_id,
     )
 
     # ========================================================
@@ -1666,15 +1510,9 @@ def calculate_fare(
     # ========================================================
 
     fare_rule = find_fare_rule(
-
-        category_id=
-            category_id,
-
-        energy_source_id=
-            energy_id,
-
-        seating_capacity=
-            request.seating_capacity,
+        category_id=category_id,
+        energy_source_id=energy_id,
+        seating_capacity=request.seating_capacity,
     )
 
     # ========================================================
@@ -1700,24 +1538,14 @@ def calculate_fare(
         )
 
         result = calculate_from_slabs(
-
-            distance_km=
-                request.distance_km,
-
-            minimum_fare=
-                minimum_fare,
-
-            minimum_distance_km=
-                minimum_distance,
-
-            slabs=
-                slabs,
+            distance_km=request.distance_km,
+            minimum_fare=minimum_fare,
+            minimum_distance_km=minimum_distance,
+            slabs=slabs,
         )
 
         return {
-
-            "success":
-                True,
+            "success": True,
 
             "calculation": {
 
@@ -1805,18 +1633,12 @@ def calculate_fare(
     # ========================================================
 
     fallback = fallback_fare(
-
-        category=
-            category["name"],
-
-        distance_km=
-            request.distance_km,
+        category=category["name"],
+        distance_km=request.distance_km,
     )
 
     return {
-
-        "success":
-            True,
+        "success": True,
 
         "calculation": {
 
@@ -1984,23 +1806,17 @@ def get_current_costs(
             cd.verification_status,
             cd.retrieved_at
         FROM cost_data cd
-
         INNER JOIN cost_categories cc
             ON cc.id = cd.cost_category_id
-
         LEFT JOIN energy_sources es
             ON es.id = cd.energy_source_id
-
         LEFT JOIN data_sources ds
             ON ds.id = cd.source_id
-
         WHERE cd.location = %s
           AND cd.verification_status = 'verified'
     """
 
-    params = [
-        location
-    ]
+    params = [location]
 
     if energy_source:
 
@@ -2042,15 +1858,9 @@ def get_current_costs(
         )
 
         return {
-
-            "success":
-                True,
-
-            "count":
-                len(rows),
-
-            "costs":
-                rows,
+            "success": True,
+            "count": len(rows),
+            "costs": rows,
         }
 
     except Exception as exc:
@@ -2101,22 +1911,16 @@ def get_price_history(
             ph.source_reference,
             ph.retrieved_at
         FROM price_history ph
-
         INNER JOIN cost_categories cc
             ON cc.id = ph.cost_category_id
-
         LEFT JOIN energy_sources es
             ON es.id = ph.energy_source_id
-
         LEFT JOIN data_sources ds
             ON ds.id = ph.source_id
-
         WHERE ph.location = %s
     """
 
-    params = [
-        location
-    ]
+    params = [location]
 
     if energy_source:
 
@@ -2151,9 +1955,7 @@ def get_price_history(
         LIMIT %s
     """
 
-    params.append(
-        limit
-    )
+    params.append(limit)
 
     try:
 
@@ -2163,15 +1965,9 @@ def get_price_history(
         )
 
         return {
-
-            "success":
-                True,
-
-            "count":
-                len(rows),
-
-            "prices":
-                rows,
+            "success": True,
+            "count": len(rows),
+            "prices": rows,
         }
 
     except Exception as exc:
@@ -2229,23 +2025,17 @@ def get_latest_price(
             ph.source_reference,
             ph.retrieved_at
         FROM price_history ph
-
         INNER JOIN cost_categories cc
             ON cc.id = ph.cost_category_id
-
         INNER JOIN energy_sources es
             ON es.id = ph.energy_source_id
-
         LEFT JOIN data_sources ds
             ON ds.id = ph.source_id
-
         WHERE ph.energy_source_id = %s
           AND ph.location = %s
-
         ORDER BY
             ph.price_date DESC,
             ph.id DESC
-
         LIMIT 1
     """
 
@@ -2262,27 +2052,15 @@ def get_latest_price(
         if not row:
 
             return {
-
-                "success":
-                    True,
-
-                "available":
-                    False,
-
-                "price":
-                    None,
+                "success": True,
+                "available": False,
+                "price": None,
             }
 
         return {
-
-            "success":
-                True,
-
-            "available":
-                True,
-
-            "price":
-                row,
+            "success": True,
+            "available": True,
+            "price": row,
         }
 
     except Exception as exc:
@@ -2320,19 +2098,14 @@ def get_cost_index(
             cih.notes,
             cih.created_at
         FROM cost_index_history cih
-
         INNER JOIN cost_categories cc
             ON cc.id = cih.cost_category_id
-
         LEFT JOIN data_sources ds
             ON ds.id = cih.source_id
-
         WHERE cih.location = %s
     """
 
-    params = [
-        location
-    ]
+    params = [location]
 
     if cost_category:
 
@@ -2359,15 +2132,9 @@ def get_cost_index(
         )
 
         return {
-
-            "success":
-                True,
-
-            "count":
-                len(rows),
-
-            "indices":
-                rows,
+            "success": True,
+            "count": len(rows),
+            "indices": rows,
         }
 
     except Exception as exc:
@@ -2440,7 +2207,6 @@ def record_price(
             detail={
                 "message":
                     "Energy source not found",
-
                 "requested":
                     request.energy_source,
             },
@@ -2457,7 +2223,6 @@ def record_price(
             detail={
                 "message":
                     "Data source not found",
-
                 "requested":
                     request.source_name,
             },
@@ -2491,7 +2256,6 @@ def record_price(
             source_reference,
             retrieved_at
         )
-
         VALUES
         (
             %s,
@@ -2505,7 +2269,6 @@ def record_price(
             %s,
             NOW()
         )
-
         RETURNING
             id,
             value,
@@ -2535,15 +2298,9 @@ def record_price(
         )
 
         return {
-
-            "success":
-                True,
-
-            "message":
-                "Price record added",
-
-            "price":
-                row,
+            "success": True,
+            "message": "Price record added",
+            "price": row,
         }
 
     except Exception as exc:
@@ -2631,7 +2388,6 @@ def record_cost(
             detail={
                 "message":
                     "Cost category not found",
-
                 "requested":
                     request.cost_category,
             },
@@ -2651,7 +2407,6 @@ def record_cost(
             detail={
                 "message":
                     "Energy source not found",
-
                 "requested":
                     request.energy_source,
             },
@@ -2668,7 +2423,6 @@ def record_cost(
             detail={
                 "message":
                     "Data source not found",
-
                 "requested":
                     request.source_name,
             },
@@ -2689,7 +2443,6 @@ def record_cost(
             retrieved_at,
             verification_status
         )
-
         VALUES
         (
             %s,
@@ -2704,7 +2457,6 @@ def record_cost(
             NOW(),
             %s
         )
-
         RETURNING
             id,
             value,
@@ -2722,39 +2474,24 @@ def record_cost(
             query,
             (
                 category["id"],
-
                 energy["id"]
                 if energy
                 else None,
-
                 request.value,
-
                 request.unit,
-
                 request.location,
-
                 request.district,
-
                 request.effective_date,
-
                 source["id"],
-
                 request.source_reference,
-
                 request.verification_status,
             ),
         )
 
         return {
-
-            "success":
-                True,
-
-            "message":
-                "Cost record added",
-
-            "cost":
-                row,
+            "success": True,
+            "message": "Cost record added",
+            "cost": row,
         }
 
     except Exception as exc:
@@ -2801,13 +2538,10 @@ def operating_cost(
             v.efficiency_unit,
             es.name AS energy_source
         FROM vehicles v
-
         LEFT JOIN energy_sources es
             ON es.id = v.energy_source_id
-
         WHERE v.id = %s
           AND v.active = TRUE
-
         LIMIT 1
     """
 
@@ -2826,35 +2560,21 @@ def operating_cost(
     if not vehicle["efficiency"]:
 
         return {
-
-            "success":
-                True,
-
-            "available":
-                False,
-
+            "success": True,
+            "available": False,
             "reason":
                 "Vehicle efficiency is not configured",
-
-            "vehicle":
-                vehicle,
+            "vehicle": vehicle,
         }
 
     if not vehicle["energy_source_id"]:
 
         return {
-
-            "success":
-                True,
-
-            "available":
-                False,
-
+            "success": True,
+            "available": False,
             "reason":
                 "Vehicle energy source is not configured",
-
-            "vehicle":
-                vehicle,
+            "vehicle": vehicle,
         }
 
     price_query = """
@@ -2866,17 +2586,13 @@ def operating_cost(
             ds.name AS source,
             ds.url AS source_url
         FROM price_history ph
-
         LEFT JOIN data_sources ds
             ON ds.id = ph.source_id
-
         WHERE ph.energy_source_id = %s
           AND ph.location = 'Kerala'
-
         ORDER BY
             ph.price_date DESC,
             ph.id DESC
-
         LIMIT 1
     """
 
@@ -2892,18 +2608,11 @@ def operating_cost(
     if not price:
 
         return {
-
-            "success":
-                True,
-
-            "available":
-                False,
-
+            "success": True,
+            "available": False,
             "reason":
                 "No current energy price is available",
-
-            "vehicle":
-                vehicle,
+            "vehicle": vehicle,
         }
 
     efficiency = float(
@@ -2943,13 +2652,8 @@ def operating_cost(
     else:
 
         return {
-
-            "success":
-                True,
-
-            "available":
-                False,
-
+            "success": True,
+            "available": False,
             "reason":
                 (
                     "Unsupported efficiency unit: "
@@ -2959,9 +2663,7 @@ def operating_cost(
                         ]
                     )
                 ),
-
-            "vehicle":
-                vehicle,
+            "vehicle": vehicle,
         }
 
     direct_energy_cost = (
@@ -2970,52 +2672,34 @@ def operating_cost(
     )
 
     return {
-
-        "success":
-            True,
-
-        "available":
-            True,
-
-        "vehicle":
-            vehicle,
-
-        "distance_km":
-            distance_km,
-
-        "efficiency":
-            efficiency,
-
+        "success": True,
+        "available": True,
+        "vehicle": vehicle,
+        "distance_km": distance_km,
+        "efficiency": efficiency,
         "efficiency_unit":
             vehicle[
                 "efficiency_unit"
             ],
-
         "energy_used":
             round(
                 energy_used,
                 4,
             ),
-
         "energy_price":
             money(
                 energy_price
             ),
-
         "energy_price_unit":
             price["unit"],
-
         "direct_energy_cost":
             money(
                 direct_energy_cost
             ),
-
         "price_date":
             price["price_date"],
-
         "source":
             price["source"],
-
         "source_url":
             price["source_url"],
     }
@@ -3031,25 +2715,15 @@ def debug_database():
     tables = {}
 
     table_names = [
-
         "vehicle_categories",
-
         "energy_sources",
-
         "vehicles",
-
         "fare_rules",
-
         "fare_slabs",
-
         "cost_categories",
-
         "data_sources",
-
         "cost_data",
-
         "price_history",
-
         "cost_index_history",
     ]
 
@@ -3088,12 +2762,8 @@ def debug_database():
                     ] = 0
 
         return {
-
-            "success":
-                True,
-
-            "tables":
-                tables,
+            "success": True,
+            "tables": tables,
         }
 
     finally:
@@ -3128,13 +2798,10 @@ def get_fare_rules(
             fr.notes,
             fr.created_at
         FROM fare_rules fr
-
         INNER JOIN vehicle_categories vc
             ON vc.id = fr.category_id
-
         LEFT JOIN energy_sources es
             ON es.id = fr.energy_source_id
-
         WHERE 1 = 1
     """
 
@@ -3196,15 +2863,9 @@ def get_fare_rules(
         )
 
         return {
-
-            "success":
-                True,
-
-            "count":
-                len(rows),
-
-            "fare_rules":
-                rows,
+            "success": True,
+            "count": len(rows),
+            "fare_rules": rows,
         }
 
     except Exception as exc:
@@ -3246,15 +2907,11 @@ def get_fare_rule(
             fr.notes,
             fr.created_at
         FROM fare_rules fr
-
         INNER JOIN vehicle_categories vc
             ON vc.id = fr.category_id
-
         LEFT JOIN energy_sources es
             ON es.id = fr.energy_source_id
-
         WHERE fr.id = %s
-
         LIMIT 1
     """
 
@@ -3275,15 +2932,9 @@ def get_fare_rule(
     )
 
     return {
-
-        "success":
-            True,
-
-        "fare_rule":
-            rule,
-
-        "slabs":
-            slabs,
+        "success": True,
+        "fare_rule": rule,
+        "slabs": slabs,
     }
 
 
@@ -3299,15 +2950,9 @@ def fare_test(
 ):
 
     request = FareCalculationRequest(
-
-        category=
-            category,
-
-        distance_km=
-            distance_km,
-
-        energy_source=
-            energy_source,
+        category=category,
+        distance_km=distance_km,
+        energy_source=energy_source,
     )
 
     return calculate_fare(
