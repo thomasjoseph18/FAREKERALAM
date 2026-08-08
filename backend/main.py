@@ -1676,7 +1676,790 @@ def calculate_fare(
         }
     }
 
+# ============================================================
+# COST & FUEL PRICE ENGINE
+# ============================================================
 
+from datetime import date
+from pydantic import BaseModel, Field
+
+
+# ------------------------------------------------------------
+# COST CATEGORY LOOKUP
+# ------------------------------------------------------------
+
+def find_cost_category(name: str):
+    query = """
+        SELECT
+            id,
+            name,
+            description,
+            active
+        FROM cost_categories
+        WHERE active = TRUE
+          AND LOWER(name) = LOWER(%s)
+        LIMIT 1
+    """
+    return fetch_one(query, (name.strip(),))
+
+
+# ------------------------------------------------------------
+# DATA SOURCE LOOKUP
+# ------------------------------------------------------------
+
+def find_data_source(source_name: str):
+    query = """
+        SELECT
+            id,
+            name,
+            organization,
+            url,
+            data_type,
+            source_level,
+            verification_status
+        FROM data_sources
+        WHERE LOWER(name) = LOWER(%s)
+        LIMIT 1
+    """
+    return fetch_one(query, (source_name.strip(),))
+
+
+# ============================================================
+# GET CURRENT FUEL / COST DATA
+# ============================================================
+
+@app.get("/api/costs")
+def get_current_costs(
+    energy_source: Optional[str] = None,
+    location: str = "Kerala"
+):
+    """
+    Returns the latest verified operating-cost records.
+    """
+
+    query = """
+        SELECT
+            cd.id,
+            cc.name AS cost_category,
+            es.name AS energy_source,
+            cd.value,
+            cd.unit,
+            cd.location,
+            cd.district,
+            cd.effective_date,
+            ds.name AS source,
+            ds.organization,
+            ds.url AS source_url,
+            cd.source_reference,
+            cd.verification_status,
+            cd.retrieved_at
+        FROM cost_data cd
+
+        INNER JOIN cost_categories cc
+            ON cc.id = cd.cost_category_id
+
+        LEFT JOIN energy_sources es
+            ON es.id = cd.energy_source_id
+
+        LEFT JOIN data_sources ds
+            ON ds.id = cd.source_id
+
+        WHERE cd.location = %s
+          AND cd.verification_status = 'verified'
+    """
+
+    params = [location]
+
+    if energy_source:
+        query += """
+            AND LOWER(es.name) = LOWER(%s)
+        """
+        params.append(energy_source.strip())
+
+    query += """
+        ORDER BY
+            cd.effective_date DESC,
+            cd.id DESC
+    """
+
+    try:
+        rows = fetch_all(query, params)
+
+        return {
+            "success": True,
+            "count": len(rows),
+            "costs": rows,
+        }
+
+    except Exception as exc:
+        print("Cost data error:", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to load cost data"
+        )
+
+
+# ============================================================
+# PRICE HISTORY
+# ============================================================
+
+@app.get("/api/prices")
+def get_price_history(
+    energy_source: Optional[str] = None,
+    location: str = "Kerala",
+    limit: int = 100
+):
+    """
+    Returns historical fuel/energy prices.
+    """
+
+    limit = max(1, min(limit, 500))
+
+    query = """
+        SELECT
+            ph.id,
+            cc.name AS cost_category,
+            es.name AS energy_source,
+            ph.value,
+            ph.unit,
+            ph.location,
+            ph.district,
+            ph.price_date,
+            ds.name AS source,
+            ds.organization,
+            ds.url AS source_url,
+            ph.source_reference,
+            ph.retrieved_at
+        FROM price_history ph
+
+        INNER JOIN cost_categories cc
+            ON cc.id = ph.cost_category_id
+
+        LEFT JOIN energy_sources es
+            ON es.id = ph.energy_source_id
+
+        LEFT JOIN data_sources ds
+            ON ds.id = ph.source_id
+
+        WHERE ph.location = %s
+    """
+
+    params = [location]
+
+    if energy_source:
+        query += """
+            AND LOWER(es.name) = LOWER(%s)
+        """
+        params.append(energy_source.strip())
+
+    query += """
+        ORDER BY ph.price_date DESC, ph.id DESC
+        LIMIT %s
+    """
+
+    params.append(limit)
+
+    try:
+        rows = fetch_all(query, params)
+
+        return {
+            "success": True,
+            "count": len(rows),
+            "prices": rows,
+        }
+
+    except Exception as exc:
+        print("Price history error:", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to load price history"
+        )
+
+
+# ============================================================
+# CURRENT PRICE FOR ONE ENERGY SOURCE
+# ============================================================
+
+@app.get("/api/prices/latest")
+def get_latest_price(
+    energy_source: str,
+    location: str = "Kerala"
+):
+    """
+    Returns the latest available verified price.
+    """
+
+    query = """
+        SELECT
+            ph.id,
+            cc.name AS cost_category,
+            es.name AS energy_source,
+            ph.value,
+            ph.unit,
+            ph.location,
+            ph.district,
+            ph.price_date,
+            ds.name AS source,
+            ds.organization,
+            ds.url AS source_url,
+            ph.source_reference,
+            ph.retrieved_at
+        FROM price_history ph
+
+        INNER JOIN cost_categories cc
+            ON cc.id = ph.cost_category_id
+
+        INNER JOIN energy_sources es
+            ON es.id = ph.energy_source_id
+
+        LEFT JOIN data_sources ds
+            ON ds.id = ph.source_id
+
+        WHERE LOWER(es.name) = LOWER(%s)
+          AND ph.location = %s
+
+        ORDER BY
+            ph.price_date DESC,
+            ph.id DESC
+
+        LIMIT 1
+    """
+
+    try:
+        row = fetch_one(
+            query,
+            (
+                energy_source.strip(),
+                location
+            )
+        )
+
+        if not row:
+            return {
+                "success": True,
+                "available": False,
+                "price": None,
+            }
+
+        return {
+            "success": True,
+            "available": True,
+            "price": row,
+        }
+
+    except Exception as exc:
+        print("Latest price error:", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to load latest price"
+        )
+
+
+# ============================================================
+# COST INDEX
+# ============================================================
+
+@app.get("/api/cost-index")
+def get_cost_index(
+    cost_category: Optional[str] = None,
+    location: str = "Kerala"
+):
+    """
+    Returns the latest operating-cost index.
+    """
+
+    query = """
+        SELECT
+            cih.id,
+            cc.name AS cost_category,
+            cih.index_value,
+            cih.reference_period,
+            cih.location,
+            ds.name AS source,
+            ds.organization,
+            cih.notes,
+            cih.created_at
+        FROM cost_index_history cih
+
+        INNER JOIN cost_categories cc
+            ON cc.id = cih.cost_category_id
+
+        LEFT JOIN data_sources ds
+            ON ds.id = cih.source_id
+
+        WHERE cih.location = %s
+    """
+
+    params = [location]
+
+    if cost_category:
+        query += """
+            AND LOWER(cc.name) = LOWER(%s)
+        """
+        params.append(cost_category.strip())
+
+    query += """
+        ORDER BY
+            cih.reference_period DESC,
+            cih.id DESC
+    """
+
+    try:
+        rows = fetch_all(query, params)
+
+        return {
+            "success": True,
+            "count": len(rows),
+            "indices": rows,
+        }
+
+    except Exception as exc:
+        print("Cost index error:", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to load cost index"
+        )
+
+
+# ============================================================
+# MANUAL PRICE RECORD
+# ============================================================
+
+class PriceRecordRequest(BaseModel):
+    energy_source: str = Field(..., min_length=1)
+    value: float = Field(..., gt=0)
+    unit: str = Field(..., min_length=1)
+    price_date: date
+    source_name: str = Field(..., min_length=1)
+    location: str = "Kerala"
+    district: Optional[str] = None
+    source_reference: Optional[str] = None
+
+
+@app.post("/api/prices")
+def record_price(request: PriceRecordRequest):
+    """
+    Adds a manually verified price record.
+
+    This endpoint is intended for trusted/admin use.
+    It does NOT automatically declare the data official.
+    """
+
+    energy = find_energy_source(
+        request.energy_source
+    )
+
+    if not energy:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "message": "Energy source not found",
+                "requested": request.energy_source,
+            }
+        )
+
+    source = find_data_source(
+        request.source_name
+    )
+
+    if not source:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "message": "Data source not found",
+                "requested": request.source_name,
+            }
+        )
+
+    # Find a suitable cost category.
+    cost_category = find_cost_category("Fuel")
+
+    if not cost_category:
+        raise HTTPException(
+            status_code=500,
+            detail="Fuel cost category is not configured"
+        )
+
+    query = """
+        INSERT INTO price_history
+        (
+            cost_category_id,
+            energy_source_id,
+            value,
+            unit,
+            location,
+            district,
+            price_date,
+            source_id,
+            source_reference,
+            retrieved_at
+        )
+        VALUES
+        (
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            NOW()
+        )
+        RETURNING
+            id,
+            value,
+            unit,
+            location,
+            district,
+            price_date,
+            source_reference,
+            retrieved_at
+    """
+
+    try:
+        row = fetch_one(
+            query,
+            (
+                cost_category["id"],
+                energy["id"],
+                request.value,
+                request.unit,
+                request.location,
+                request.district,
+                request.price_date,
+                source["id"],
+                request.source_reference,
+            )
+        )
+
+        return {
+            "success": True,
+            "message": "Price record added",
+            "price": row,
+        }
+
+    except Exception as exc:
+        print("Price insert error:", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to record price"
+        )
+
+
+# ============================================================
+# COST DATA RECORD
+# ============================================================
+
+class CostRecordRequest(BaseModel):
+    cost_category: str = Field(..., min_length=1)
+    energy_source: Optional[str] = None
+    value: float = Field(..., gt=0)
+    unit: str = Field(..., min_length=1)
+    effective_date: date
+    source_name: str = Field(..., min_length=1)
+    location: str = "Kerala"
+    district: Optional[str] = None
+    source_reference: Optional[str] = None
+    verification_status: str = "pending"
+
+
+@app.post("/api/costs")
+def record_cost(request: CostRecordRequest):
+
+    if request.verification_status not in {
+        "pending",
+        "verified",
+        "rejected"
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid verification status"
+        )
+
+    category = find_cost_category(
+        request.cost_category
+    )
+
+    if not category:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "message": "Cost category not found",
+                "requested": request.cost_category,
+            }
+        )
+
+    energy = find_energy_source(
+        request.energy_source
+    )
+
+    if request.energy_source and not energy:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "message": "Energy source not found",
+                "requested": request.energy_source,
+            }
+        )
+
+    source = find_data_source(
+        request.source_name
+    )
+
+    if not source:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "message": "Data source not found",
+                "requested": request.source_name,
+            }
+        )
+
+    query = """
+        INSERT INTO cost_data
+        (
+            cost_category_id,
+            energy_source_id,
+            value,
+            unit,
+            location,
+            district,
+            effective_date,
+            source_id,
+            source_reference,
+            retrieved_at,
+            verification_status
+        )
+        VALUES
+        (
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            NOW(),
+            %s
+        )
+        RETURNING
+            id,
+            value,
+            unit,
+            location,
+            district,
+            effective_date,
+            verification_status,
+            retrieved_at
+    """
+
+    try:
+        row = fetch_one(
+            query,
+            (
+                category["id"],
+                energy["id"] if energy else None,
+                request.value,
+                request.unit,
+                request.location,
+                request.district,
+                request.effective_date,
+                source["id"],
+                request.source_reference,
+                request.verification_status,
+            )
+        )
+
+        return {
+            "success": True,
+            "message": "Cost record added",
+            "cost": row,
+        }
+
+    except Exception as exc:
+        print("Cost insert error:", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to record cost"
+        )
+
+
+# ============================================================
+# OPERATING COST ESTIMATE
+# ============================================================
+
+@app.get("/api/operating-cost")
+def operating_cost(
+    vehicle_id: int,
+    distance_km: float = 1.0
+):
+    """
+    Estimates direct fuel/energy cost for a vehicle.
+
+    This is deliberately separate from the official fare.
+    """
+
+    if distance_km <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="distance_km must be greater than zero"
+        )
+
+    vehicle_query = """
+        SELECT
+            v.id,
+            v.name,
+            v.category_id,
+            v.energy_source_id,
+            v.seating_capacity,
+            v.efficiency,
+            v.efficiency_unit,
+            es.name AS energy_source
+        FROM vehicles v
+
+        LEFT JOIN energy_sources es
+            ON es.id = v.energy_source_id
+
+        WHERE v.id = %s
+          AND v.active = TRUE
+
+        LIMIT 1
+    """
+
+    vehicle = fetch_one(
+        vehicle_query,
+        (vehicle_id,)
+    )
+
+    if not vehicle:
+        raise HTTPException(
+            status_code=404,
+            detail="Vehicle not found"
+        )
+
+    if not vehicle["efficiency"]:
+        return {
+            "success": True,
+            "available": False,
+            "reason": "Vehicle efficiency is not configured",
+            "vehicle": vehicle,
+        }
+
+    if not vehicle["energy_source_id"]:
+        return {
+            "success": True,
+            "available": False,
+            "reason": "Vehicle energy source is not configured",
+            "vehicle": vehicle,
+        }
+
+    price_query = """
+        SELECT
+            ph.value,
+            ph.unit,
+            ph.price_date,
+            ph.location,
+            ds.name AS source,
+            ds.url AS source_url
+        FROM price_history ph
+
+        LEFT JOIN data_sources ds
+            ON ds.id = ph.source_id
+
+        WHERE ph.energy_source_id = %s
+          AND ph.location = 'Kerala'
+
+        ORDER BY
+            ph.price_date DESC,
+            ph.id DESC
+
+        LIMIT 1
+    """
+
+    price = fetch_one(
+        price_query,
+        (vehicle["energy_source_id"],)
+    )
+
+    if not price:
+        return {
+            "success": True,
+            "available": False,
+            "reason": "No current energy price is available",
+            "vehicle": vehicle,
+        }
+
+    efficiency = float(vehicle["efficiency"])
+    energy_price = float(price["value"])
+
+    efficiency_unit = (
+        vehicle["efficiency_unit"] or ""
+    ).lower()
+
+    # --------------------------------------------------------
+    # km per litre / km per unit
+    # --------------------------------------------------------
+    if "km" in efficiency_unit and (
+        "l" in efficiency_unit
+        or "unit" in efficiency_unit
+    ):
+        energy_used = distance_km / efficiency
+
+    # --------------------------------------------------------
+    # litre / 100 km
+    # --------------------------------------------------------
+    elif "l/100" in efficiency_unit:
+        energy_used = (
+            distance_km * efficiency / 100
+        )
+
+    else:
+        return {
+            "success": True,
+            "available": False,
+            "reason": (
+                "Unsupported efficiency unit: "
+                + str(vehicle["efficiency_unit"])
+            ),
+            "vehicle": vehicle,
+        }
+
+    direct_energy_cost = (
+        energy_used * energy_price
+    )
+
+    return {
+        "success": True,
+        "available": True,
+        "vehicle": vehicle,
+        "distance_km": distance_km,
+        "efficiency": efficiency,
+        "efficiency_unit": vehicle["efficiency_unit"],
+        "energy_used": round(
+            energy_used,
+            4
+        ),
+        "energy_price": money(
+            energy_price
+        ),
+        "energy_price_unit": price["unit"],
+        "direct_energy_cost": money(
+            direct_energy_cost
+        ),
+        "price_date": price["price_date"],
+        "source": price["source"],
+        "source_url": price["source_url"],
+    }
 # ============================================================
 # DATABASE DEBUG
 # ============================================================
