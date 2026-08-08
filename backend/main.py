@@ -748,3 +748,94 @@ def test_ppac(
             status_code=500,
             detail=str(error)
         )
+        # ============================================================
+# PPAC DATA STRUCTURE DIAGNOSTIC
+# ============================================================
+
+@app.get("/api/admin/inspect-ppac")
+def inspect_ppac(
+    token: str = Query(...)
+):
+    """
+    Read-only diagnostic.
+    Does NOT write to the database.
+    """
+
+    if not UPDATE_TOKEN:
+        raise HTTPException(
+            status_code=500,
+            detail="FUEL_UPDATE_TOKEN is not configured"
+        )
+
+    if token != UPDATE_TOKEN:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid update token"
+        )
+
+    try:
+        response = requests.get(
+            PPAC_URL,
+            timeout=30,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 "
+                    "(Fare Keralam official data updater)"
+                )
+            }
+        )
+
+        response.raise_for_status()
+
+        html = response.text
+
+        soup = BeautifulSoup(
+            html,
+            "html.parser"
+        )
+
+        links = []
+
+        for link in soup.find_all("a", href=True):
+            text = link.get_text(" ", strip=True)
+            href = link.get("href")
+
+            if text or href:
+                links.append({
+                    "text": text[:200],
+                    "href": href
+                })
+
+        scripts = []
+
+        for script in soup.find_all("script", src=True):
+            scripts.append(script.get("src"))
+
+        return {
+            "success": True,
+            "status_code": response.status_code,
+            "page_title": (
+                soup.title.get_text(strip=True)
+                if soup.title
+                else None
+            ),
+            "html_size": len(html),
+            "link_count": len(links),
+            "script_count": len(scripts),
+            "links": links[:100],
+            "scripts": scripts[:100]
+        }
+
+    except requests.RequestException as error:
+
+        raise HTTPException(
+            status_code=502,
+            detail=f"PPAC request failed: {str(error)}"
+        )
+
+    except Exception as error:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(error)
+        )
