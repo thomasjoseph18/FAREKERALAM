@@ -887,22 +887,28 @@ def fetch_iocl_fuel_prices():
         )
 
         return {
-            "success": True,
-            "source": IOCL_PRICE_URL,
-            "status_code": response.status_code,
-            "page_size": len(response.text),
-            "page_title": (
-                soup.title.get_text(strip=True)
-                if soup.title
-                else None
-            ),
-            "redirect_location": response.headers.get(
-                "Location"
-            ),
-            "contains_petrol": "Petrol" in page_text,
-            "contains_diesel": "Diesel" in page_text
-        }
-
+"success": True,
+"source": IOCL_PRICE_URL,
+"status_code": response.status_code,
+"final_url": response.url,
+"page_size": len(response.text),
+"page_title": (
+soup.title.get_text(strip=True)
+if soup.title
+else None
+),
+"redirect_history": [
+{
+"status_code": r.status_code,
+"url": r.url,
+"location": r.headers.get("Location")
+}
+for r in response.history
+],
+"response_location": response.headers.get("Location"),
+"contains_petrol": "Petrol" in page_text,
+"contains_diesel": "Diesel" in page_text
+}
     except requests.RequestException as error:
         raise HTTPException(
             status_code=502,
