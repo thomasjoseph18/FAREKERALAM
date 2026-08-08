@@ -1,0 +1,2873 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <meta name="description"
+          content="Fare Keralam — a transparent, data-driven and slab-based transport fare platform for Kerala.">
+
+    <meta name="theme-color"
+          content="#07111f">
+
+    <title>Fare Keralam | Smart Transport Fare System</title>
+
+
+    <!-- =====================================================
+         GOOGLE FONTS
+    ====================================================== -->
+
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
+
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+          rel="stylesheet">
+
+
+    <!-- =====================================================
+         FONT AWESOME
+    ====================================================== -->
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+
+    <!-- =====================================================
+         MAIN CSS
+    ====================================================== -->
+
+    <link rel="stylesheet"
+          href="style.css">
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     PRELOADER
+====================================================== -->
+
+<div id="preloader">
+
+    <div class="loader">
+
+        <span></span>
+        <span></span>
+        <span></span>
+
+    </div>
+
+    <p>
+        Loading Fare Keralam...
+    </p>
+
+</div>
+
+
+
+<!-- =====================================================
+     NAVIGATION
+====================================================== -->
+
+<header class="navbar"
+        id="navbar">
+
+    <div class="container nav-container">
+
+
+        <!-- LOGO -->
+
+        <a href="#home"
+           class="logo">
+
+            <span class="logo-icon">
+
+                <i class="fa-solid fa-route"></i>
+
+            </span>
+
+            <span class="logo-text">
+
+                Fare
+                <span>Keralam</span>
+
+            </span>
+
+        </a>
+
+
+
+        <!-- NAVIGATION -->
+
+        <nav class="nav-menu"
+             id="navMenu">
+
+            <a href="#home">
+                Home
+            </a>
+
+            <a href="#calculator">
+                Calculator
+            </a>
+
+            <a href="#costs">
+                Cost Index
+            </a>
+
+            <a href="#analysis">
+                Analysis
+            </a>
+
+            <a href="#forecast">
+                AI Forecast
+            </a>
+
+            <a href="#how-it-works">
+                How It Works
+            </a>
+
+            <a href="#sources">
+                Data Sources
+            </a>
+
+        </nav>
+
+
+
+        <!-- CTA -->
+
+        <a href="#calculator"
+           class="nav-button">
+
+            Calculate Fare
+
+        </a>
+
+
+
+        <!-- MOBILE MENU -->
+
+        <button class="menu-toggle"
+                id="menuToggle"
+                aria-label="Open navigation menu">
+
+            <i class="fa-solid fa-bars"></i>
+
+        </button>
+
+    </div>
+
+</header>
+
+
+
+<!-- =====================================================
+     MAIN
+====================================================== -->
+
+<main>
+
+
+
+<!-- =====================================================
+     HERO
+====================================================== -->
+
+<section class="hero section"
+         id="home">
+
+    <div class="hero-background"></div>
+
+
+    <div class="container hero-grid">
+
+
+        <!-- HERO TEXT -->
+
+        <div class="hero-content reveal">
+
+
+            <div class="eyebrow">
+
+                <span class="status-dot"></span>
+
+                KERALA'S SMART FARE PLATFORM
+
+            </div>
+
+
+
+            <h1>
+
+                Fair fares for
+
+                <span>Kerala.</span>
+
+            </h1>
+
+
+
+            <p class="hero-description">
+
+                Fare Keralam combines official tariff structures,
+                operating costs, historical data and AI forecasting
+                to create a transparent and stable transport fare
+                system for passengers and drivers.
+
+            </p>
+
+
+
+            <div class="hero-buttons">
+
+                <a href="#calculator"
+                   class="btn btn-primary">
+
+                    <i class="fa-solid fa-calculator"></i>
+
+                    Calculate Journey Fare
+
+                </a>
+
+
+                <a href="#how-it-works"
+                   class="btn btn-secondary">
+
+                    How It Works
+
+                    <i class="fa-solid fa-arrow-down"></i>
+
+                </a>
+
+            </div>
+
+
+
+            <!-- PRINCIPLES -->
+
+            <div class="hero-principles">
+
+
+                <div>
+
+                    <i class="fa-solid fa-scale-balanced"></i>
+
+                    <span>
+                        Driver + Passenger Fairness
+                    </span>
+
+                </div>
+
+
+                <div>
+
+                    <i class="fa-solid fa-chart-line"></i>
+
+                    <span>
+                        Data Driven
+                    </span>
+
+                </div>
+
+
+                <div>
+
+                    <i class="fa-solid fa-layer-group"></i>
+
+                    <span>
+                        Stable Fare Slabs
+                    </span>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+
+
+        <!-- HERO FARE CARD -->
+
+        <div class="hero-card glass-card reveal">
+
+
+            <div class="card-header">
+
+                <div>
+
+                    <span class="card-label">
+                        FARE ENGINE
+                    </span>
+
+                    <h3>
+                        Journey Estimate
+                    </h3>
+
+                </div>
+
+
+                <div class="live-badge">
+
+                    <span></span>
+
+                    LIVE
+
+                </div>
+
+            </div>
+
+
+
+            <!-- ROUTE -->
+
+            <div class="mini-route">
+
+
+                <div class="route-point">
+
+                    <span class="route-dot"></span>
+
+                    <span>
+                        Start
+                    </span>
+
+                </div>
+
+
+                <div class="route-line"></div>
+
+
+                <div class="route-point">
+
+                    <span class="route-dot destination"></span>
+
+                    <span>
+                        Destination
+                    </span>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- FARE -->
+
+            <div class="hero-fare">
+
+                <span>
+                    Estimated Fare
+                </span>
+
+
+                <strong id="heroFare">
+                    ₹30
+                </strong>
+
+
+                <small>
+                    Current minimum fare
+                </small>
+
+            </div>
+
+
+
+            <!-- STATS -->
+
+            <div class="hero-stats">
+
+
+                <div>
+
+                    <span>
+                        Distance
+                    </span>
+
+                    <strong id="heroDistance">
+                        1.5 km
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Vehicle
+                    </span>
+
+                    <strong id="heroVehicle">
+                        Auto
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        System
+                    </span>
+
+                    <strong class="positive">
+                        Fare Keralam
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     TRUST STRIP
+====================================================== -->
+
+<section class="trust-strip">
+
+    <div class="container trust-grid">
+
+
+        <div class="trust-item">
+
+            <i class="fa-solid fa-building-columns"></i>
+
+            <div>
+
+                <strong>
+                    Government Data
+                </strong>
+
+                <span>
+                    Official sources where available
+                </span>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="trust-item">
+
+            <i class="fa-solid fa-chart-simple"></i>
+
+            <div>
+
+                <strong>
+                    Operating Cost Index
+                </strong>
+
+                <span>
+                    Multi-component cost model
+                </span>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="trust-item">
+
+            <i class="fa-solid fa-clock-rotate-left"></i>
+
+            <div>
+
+                <strong>
+                    Historical Analysis
+                </strong>
+
+                <span>
+                    10+ years of data
+                </span>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="trust-item">
+
+            <i class="fa-solid fa-robot"></i>
+
+            <div>
+
+                <strong>
+                    AI Forecasting
+                </strong>
+
+                <span>
+                    Predictive, not opaque
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     JOURNEY CALCULATOR
+====================================================== -->
+
+<section class="calculator-section section"
+         id="calculator">
+
+
+    <div class="container">
+
+
+        <div class="section-heading reveal">
+
+            <span class="section-tag">
+                JOURNEY CALCULATOR
+            </span>
+
+
+            <h2>
+
+                Calculate your
+
+                <span>
+                    journey fare.
+                </span>
+
+            </h2>
+
+
+            <p>
+
+                Choose your transport type, vehicle category,
+                fuel and journey distance. Fare Keralam applies
+                the appropriate minimum fare and distance slabs.
+
+            </p>
+
+        </div>
+
+
+
+        <div class="calculator-grid">
+
+
+            <!-- =================================================
+                 INPUT CARD
+            ================================================== -->
+
+            <div class="calculator-card glass-card reveal">
+
+
+                <div class="card-title">
+
+                    <div class="title-icon">
+
+                        <i class="fa-solid fa-sliders"></i>
+
+                    </div>
+
+
+                    <div>
+
+                        <h3>
+                            Journey Details
+                        </h3>
+
+                        <p>
+                            Select your vehicle and journey
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+
+                <form id="fareForm">
+
+
+                    <!-- TRANSPORT TYPE -->
+
+                    <div class="form-group">
+
+                        <label for="transportType">
+                            Transport Type
+                        </label>
+
+
+                        <div class="select-wrapper">
+
+                            <select id="transportType"
+                                    name="transportType"
+                                    required>
+
+                                <option value="">
+                                    Select transport type
+                                </option>
+
+
+                                <option value="auto">
+                                    Auto-rickshaw
+                                </option>
+
+
+                                <option value="taxi">
+                                    Taxi / Cab
+                                </option>
+
+
+                                <option value="traveller">
+                                    Traveller / Passenger Van
+                                </option>
+
+
+                                <option value="route-bus">
+                                    Route / Stage Bus
+                                </option>
+
+
+                                <option value="tourist-bus">
+                                    Tourist / Contract Bus
+                                </option>
+
+                            </select>
+
+
+                            <i class="fa-solid fa-chevron-down"></i>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- VEHICLE CATEGORY -->
+
+                    <div class="form-group">
+
+                        <label for="vehicleCategory">
+                            Vehicle Category
+                        </label>
+
+
+                        <div class="select-wrapper">
+
+                            <select id="vehicleCategory"
+                                    name="vehicleCategory"
+                                    disabled>
+
+                                <option value="">
+                                    Select category
+                                </option>
+
+                            </select>
+
+
+                            <i class="fa-solid fa-chevron-down"></i>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- FUEL -->
+
+                    <div class="form-group"
+                         id="fuelGroup">
+
+                        <label for="fuelType">
+                            Fuel / Energy
+                        </label>
+
+
+                        <div class="select-wrapper">
+
+                            <select id="fuelType"
+                                    name="fuelType"
+                                    disabled>
+
+                                <option value="">
+                                    Select fuel / energy
+                                </option>
+
+
+                                <option value="petrol">
+                                    Petrol
+                                </option>
+
+
+                                <option value="diesel">
+                                    Diesel
+                                </option>
+
+
+                                <option value="cng">
+                                    CNG
+                                </option>
+
+
+                                <option value="electric">
+                                    Electric
+                                </option>
+
+
+                                <option value="hybrid">
+                                    Hybrid
+                                </option>
+
+                            </select>
+
+
+                            <i class="fa-solid fa-chevron-down"></i>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- VEHICLE MODEL -->
+
+                    <div class="form-group"
+                         id="modelGroup">
+
+                        <label for="vehicleModel">
+                            Vehicle / Model
+                        </label>
+
+
+                        <div class="select-wrapper">
+
+                            <select id="vehicleModel"
+                                    name="vehicleModel"
+                                    disabled>
+
+                                <option value="">
+                                    Select vehicle model
+                                </option>
+
+                            </select>
+
+
+                            <i class="fa-solid fa-chevron-down"></i>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- DISTANCE -->
+
+                    <div class="form-group">
+
+                        <label for="distance">
+
+                            Journey Distance
+
+                            <span class="optional">
+                                km
+                            </span>
+
+                        </label>
+
+
+                        <div class="input-with-icon">
+
+                            <i class="fa-solid fa-road"></i>
+
+
+                            <input
+                                type="number"
+                                id="distance"
+                                name="distance"
+                                min="0.1"
+                                step="0.1"
+                                placeholder="e.g. 20"
+                                required
+                            >
+
+
+                            <span>
+                                km
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- JOURNEY TYPE -->
+
+                    <div class="form-group">
+
+                        <label>
+                            Journey Type
+                        </label>
+
+
+                        <div class="segmented-control">
+
+
+                            <label>
+
+                                <input
+                                    type="radio"
+                                    name="journeyType"
+                                    value="oneway"
+                                    checked
+                                >
+
+                                <span>
+                                    One Way
+                                </span>
+
+                            </label>
+
+
+                            <label>
+
+                                <input
+                                    type="radio"
+                                    name="journeyType"
+                                    value="return"
+                                >
+
+                                <span>
+                                    Return
+                                </span>
+
+                            </label>
+
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- WAITING -->
+
+                    <div class="form-group">
+
+                        <label for="waitingTime">
+
+                            Waiting Time
+
+                            <span class="optional">
+                                Optional
+                            </span>
+
+                        </label>
+
+
+                        <div class="input-with-icon">
+
+                            <i class="fa-regular fa-clock"></i>
+
+
+                            <input
+                                type="number"
+                                id="waitingTime"
+                                min="0"
+                                step="1"
+                                placeholder="0"
+                            >
+
+
+                            <span>
+                                min
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- CALCULATE -->
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary calculate-button">
+
+                        <i class="fa-solid fa-calculator"></i>
+
+                        Calculate Fare
+
+                    </button>
+
+
+                </form>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 RESULT CARD
+            ================================================== -->
+
+            <div class="fare-result-card glass-card reveal">
+
+
+                <div class="result-top">
+
+                    <div>
+
+                        <span class="card-label">
+                            FARE RESULT
+                        </span>
+
+
+                        <h3>
+                            Estimated Journey Fare
+                        </h3>
+
+                    </div>
+
+
+                    <div class="result-status"
+                         id="resultStatus">
+
+                        Ready
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- MAIN PRICE -->
+
+                <div class="result-price">
+
+                    <span>
+                        Estimated end price
+                    </span>
+
+
+                    <strong id="finalFare">
+                        ₹30
+                    </strong>
+
+
+                    <small id="farePerKm">
+                        Enter journey details
+                    </small>
+
+                </div>
+
+
+
+                <!-- SLAB -->
+
+                <div class="slab-box">
+
+
+                    <div class="slab-header">
+
+                        <span>
+                            Current Fare Slab
+                        </span>
+
+
+                        <span id="slabStatus"
+                              class="slab-active">
+
+                            Minimum
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="slab-progress">
+
+                        <div class="slab-progress-fill"
+                             id="slabProgress">
+                        </div>
+
+                    </div>
+
+
+                    <div class="slab-labels">
+
+                        <span id="slabStart">
+                            0 km
+                        </span>
+
+
+                        <span id="slabEnd">
+                            1.5 km
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- BREAKDOWN -->
+
+                <div class="fare-breakdown">
+
+
+                    <h4>
+                        Fare Breakdown
+                    </h4>
+
+
+                    <div class="breakdown-row">
+
+                        <span>
+                            Minimum fare
+                        </span>
+
+
+                        <strong id="minimumFare">
+                            ₹30
+                        </strong>
+
+                    </div>
+
+
+                    <div class="breakdown-row">
+
+                        <span>
+                            Included distance
+                        </span>
+
+
+                        <strong id="includedDistance">
+                            1.5 km
+                        </strong>
+
+                    </div>
+
+
+                    <div class="breakdown-row">
+
+                        <span>
+                            Additional distance
+                        </span>
+
+
+                        <strong id="additionalDistance">
+                            0 km
+                        </strong>
+
+                    </div>
+
+
+                    <div class="breakdown-row">
+
+                        <span>
+                            Distance charge
+                        </span>
+
+
+                        <strong id="distanceCharge">
+                            ₹0
+                        </strong>
+
+                    </div>
+
+
+                    <div class="breakdown-row">
+
+                        <span>
+                            Waiting charge
+                        </span>
+
+
+                        <strong id="waitingCharge">
+                            ₹0
+                        </strong>
+
+                    </div>
+
+
+                    <div class="breakdown-divider"></div>
+
+
+                    <div class="breakdown-total">
+
+                        <span>
+                            Estimated Fare
+                        </span>
+
+
+                        <strong id="breakdownTotal">
+                            ₹30
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- DISCLAIMER -->
+
+                <div class="fare-note">
+
+                    <i class="fa-solid fa-circle-info"></i>
+
+
+                    <p>
+
+                        Official government fares remain
+                        authoritative. Fare Keralam's modelled
+                        sustainable fare is shown separately
+                        wherever applicable.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     OPERATING COST INDEX
+====================================================== -->
+
+<section class="cost-section section"
+         id="costs">
+
+
+    <div class="container">
+
+
+        <div class="section-heading reveal">
+
+            <span class="section-tag">
+                OPERATING COST INDEX
+            </span>
+
+
+            <h2>
+
+                Fuel isn't the whole story.
+
+                <span>
+                    Costs work together.
+                </span>
+
+            </h2>
+
+
+            <p>
+
+                Fare Keralam tracks fuel, tyres, engine oil,
+                maintenance, labour, depreciation and other
+                relevant operating costs.
+
+            </p>
+
+        </div>
+
+
+
+        <div class="cost-grid">
+
+
+            <!-- FUEL -->
+
+            <div class="cost-card glass-card reveal">
+
+                <div class="cost-icon">
+
+                    <i class="fa-solid fa-gas-pump"></i>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Fuel / Energy
+                    </span>
+
+
+                    <strong id="fuelCost">
+                        —
+                    </strong>
+
+
+                    <small>
+                        Current input
+                    </small>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- MAINTENANCE -->
+
+            <div class="cost-card glass-card reveal">
+
+                <div class="cost-icon">
+
+                    <i class="fa-solid fa-wrench"></i>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Maintenance
+                    </span>
+
+
+                    <strong id="maintenanceCost">
+                        —
+                    </strong>
+
+
+                    <small>
+                        Cost index
+                    </small>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- TYRES -->
+
+            <div class="cost-card glass-card reveal">
+
+                <div class="cost-icon">
+
+                    <i class="fa-solid fa-circle-dot"></i>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Tyres
+                    </span>
+
+
+                    <strong id="tyreCost">
+                        —
+                    </strong>
+
+
+                    <small>
+                        Market basket
+                    </small>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- ENGINE OIL -->
+
+            <div class="cost-card glass-card reveal">
+
+                <div class="cost-icon">
+
+                    <i class="fa-solid fa-oil-can"></i>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Engine Oil
+                    </span>
+
+
+                    <strong id="oilCost">
+                        —
+                    </strong>
+
+
+                    <small>
+                        Lubricant index
+                    </small>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- LABOUR -->
+
+            <div class="cost-card glass-card reveal">
+
+                <div class="cost-icon">
+
+                    <i class="fa-solid fa-user-tie"></i>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Labour
+                    </span>
+
+
+                    <strong id="labourCost">
+                        —
+                    </strong>
+
+
+                    <small>
+                        Driver compensation
+                    </small>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- DEPRECIATION -->
+
+            <div class="cost-card glass-card reveal">
+
+                <div class="cost-icon">
+
+                    <i class="fa-solid fa-car"></i>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Depreciation
+                    </span>
+
+
+                    <strong id="depreciationCost">
+                        —
+                    </strong>
+
+
+                    <small>
+                        Vehicle cost
+                    </small>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- MAIN INDEX -->
+
+        <div class="index-panel glass-card reveal">
+
+
+            <div class="index-info">
+
+                <span class="section-tag">
+                    KERALA TRANSPORT COST INDEX
+                </span>
+
+
+                <h3>
+                    Current operating-cost pressure
+                </h3>
+
+
+                <p>
+
+                    A composite measure of changes in the
+                    major costs involved in commercial
+                    transport operation.
+
+                </p>
+
+            </div>
+
+
+
+            <div class="index-value">
+
+                <strong id="costIndexValue">
+                    —
+                </strong>
+
+
+                <span>
+                    Cost Index
+                </span>
+
+
+                <div class="index-change"
+                     id="costIndexChange">
+
+                    —
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     SLAB SYSTEM
+====================================================== -->
+
+<section class="slab-section section">
+
+
+    <div class="container">
+
+
+        <div class="section-heading reveal">
+
+            <span class="section-tag">
+                STABLE FARE SLABS
+            </span>
+
+
+            <h2>
+                No daily fare fluctuations.
+            </h2>
+
+
+            <p>
+
+                Operating costs can change continuously,
+                but passenger fares should change only when
+                a statistically justified slab threshold is reached.
+
+            </p>
+
+        </div>
+
+
+
+        <div class="slab-system">
+
+
+            <div class="slab-card glass-card reveal">
+
+                <span class="slab-number">
+                    01
+                </span>
+
+
+                <div>
+
+                    <h3>
+                        Monitor
+                    </h3>
+
+
+                    <p>
+
+                        Track fuel, maintenance, tyres,
+                        labour, insurance and other costs.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="slab-card glass-card reveal">
+
+                <span class="slab-number">
+                    02
+                </span>
+
+
+                <div>
+
+                    <h3>
+                        Calculate
+                    </h3>
+
+
+                    <p>
+
+                        Convert component-level changes
+                        into an operating-cost index.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="slab-card glass-card reveal">
+
+                <span class="slab-number">
+                    03
+                </span>
+
+
+                <div>
+
+                    <h3>
+                        Test
+                    </h3>
+
+
+                    <p>
+
+                        Statistical analysis determines
+                        whether a fare revision is justified.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="slab-card glass-card reveal">
+
+                <span class="slab-number">
+                    04
+                </span>
+
+
+                <div>
+
+                    <h3>
+                        Revise
+                    </h3>
+
+
+                    <p>
+
+                        A new slab is proposed only after
+                        the defined threshold is crossed.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     HISTORICAL ANALYSIS
+====================================================== -->
+
+<section class="analysis-section section"
+         id="analysis">
+
+
+    <div class="container">
+
+
+        <div class="section-heading reveal">
+
+            <span class="section-tag">
+                HISTORICAL ANALYSIS
+            </span>
+
+
+            <h2>
+
+                How have Kerala's fares
+
+                <span>
+                    changed over time?
+                </span>
+
+            </h2>
+
+
+            <p>
+
+                Compare historical fares, fuel prices and
+                operating-cost changes to understand when
+                revisions occurred and why.
+
+            </p>
+
+        </div>
+
+
+
+        <div class="analysis-grid">
+
+
+            <!-- CHART -->
+
+            <div class="chart-card glass-card reveal">
+
+
+                <div class="chart-header">
+
+
+                    <div>
+
+                        <h3>
+                            Fare vs Operating Cost
+                        </h3>
+
+
+                        <p>
+                            Historical comparison
+                        </p>
+
+                    </div>
+
+
+                    <select id="analysisPeriod">
+
+                        <option value="10">
+                            Last 10 years
+                        </option>
+
+
+                        <option value="15">
+                            Last 15 years
+                        </option>
+
+
+                        <option value="all">
+                            All available data
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+
+                <div class="chart-container">
+
+                    <canvas id="fareCostChart"></canvas>
+
+
+                    <div class="chart-placeholder"
+                         id="chartPlaceholder">
+
+                        <i class="fa-solid fa-chart-line"></i>
+
+
+                        <span>
+                            Historical data will appear here
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- STATS -->
+
+            <div class="analysis-stats">
+
+
+                <div class="stat-card glass-card reveal">
+
+                    <span>
+                        Fare revisions
+                    </span>
+
+
+                    <strong id="revisionCount">
+                        —
+                    </strong>
+
+
+                    <small>
+                        Historical period
+                    </small>
+
+                </div>
+
+
+
+                <div class="stat-card glass-card reveal">
+
+                    <span>
+                        Fuel change
+                    </span>
+
+
+                    <strong id="fuelChange">
+                        —
+                    </strong>
+
+
+                    <small>
+                        Selected period
+                    </small>
+
+                </div>
+
+
+
+                <div class="stat-card glass-card reveal">
+
+                    <span>
+                        Cost pressure
+                    </span>
+
+
+                    <strong id="historicalCostChange">
+                        —
+                    </strong>
+
+
+                    <small>
+                        Composite index
+                    </small>
+
+                </div>
+
+
+
+                <div class="stat-card glass-card reveal">
+
+                    <span>
+                        Model accuracy
+                    </span>
+
+
+                    <strong id="modelAccuracy">
+                        —
+                    </strong>
+
+
+                    <small>
+                        Back-test result
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     AI FORECAST
+====================================================== -->
+
+<section class="ai-section section"
+         id="forecast">
+
+
+    <div class="container">
+
+
+        <div class="ai-panel glass-card reveal">
+
+
+            <div class="ai-content">
+
+
+                <span class="section-tag">
+                    AI FORECAST ENGINE
+                </span>
+
+
+                <h2>
+
+                    Predict cost pressure
+
+                    <span>
+                        before the next slab.
+                    </span>
+
+                </h2>
+
+
+                <p>
+
+                    AI can analyse historical costs, energy
+                    prices, inflation and other indicators
+                    to estimate future operating-cost pressure.
+
+                    It predicts potential changes but does not
+                    independently set the legal fare.
+
+                </p>
+
+
+
+                <div class="ai-principle">
+
+
+                    <div>
+
+                        <i class="fa-solid fa-calculator"></i>
+
+                        <span>
+                            Economics calculates
+                        </span>
+
+                    </div>
+
+
+                    <div>
+
+                        <i class="fa-solid fa-robot"></i>
+
+                        <span>
+                            AI predicts
+                        </span>
+
+                    </div>
+
+
+                    <div>
+
+                        <i class="fa-solid fa-scale-balanced"></i>
+
+                        <span>
+                            Rules decide
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+
+                <button class="btn btn-primary"
+                        id="runForecast">
+
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+
+                    Run Forecast
+
+                </button>
+
+            </div>
+
+
+
+            <!-- FORECAST RESULT -->
+
+            <div class="forecast-result">
+
+
+                <div class="forecast-circle">
+
+                    <span>
+                        Next Slab
+                    </span>
+
+
+                    <strong id="forecastProbability">
+                        —
+                    </strong>
+
+
+                    <small>
+                        probability
+                    </small>
+
+                </div>
+
+
+
+                <div class="forecast-details">
+
+
+                    <div>
+
+                        <span>
+                            Forecast horizon
+                        </span>
+
+
+                        <strong>
+                            90 days
+                        </strong>
+
+                    </div>
+
+
+
+                    <div>
+
+                        <span>
+                            Expected cost pressure
+                        </span>
+
+
+                        <strong id="forecastCost">
+                            —
+                        </strong>
+
+                    </div>
+
+
+
+                    <div>
+
+                        <span>
+                            Expected status
+                        </span>
+
+
+                        <strong id="forecastStatus">
+                            —
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     FAIRNESS
+====================================================== -->
+
+<section class="fairness-section section">
+
+
+    <div class="container">
+
+
+        <div class="section-heading reveal">
+
+            <span class="section-tag">
+                FAIRNESS ENGINE
+            </span>
+
+
+            <h2>
+
+                Sustainable for drivers.
+
+                <span>
+                    Affordable for passengers.
+                </span>
+
+            </h2>
+
+
+            <p>
+
+                The model aims to maintain a reasonable
+                return for drivers while preventing unnecessary
+                fare increases for passengers.
+
+            </p>
+
+        </div>
+
+
+
+        <div class="fairness-grid">
+
+
+            <div class="fairness-card glass-card reveal">
+
+                <div class="fairness-icon">
+
+                    <i class="fa-solid fa-user-tie"></i>
+
+                </div>
+
+
+                <h3>
+                    Driver Sustainability
+                </h3>
+
+
+                <p>
+
+                    Accounts for operating expenses,
+                    labour, depreciation and a reasonable
+                    return on operation.
+
+                </p>
+
+            </div>
+
+
+
+            <div class="fairness-arrow">
+
+                <i class="fa-solid fa-arrow-right"></i>
+
+            </div>
+
+
+
+            <div class="fairness-card glass-card reveal">
+
+                <div class="fairness-icon">
+
+                    <i class="fa-solid fa-scale-balanced"></i>
+
+                </div>
+
+
+                <h3>
+                    Fairness Layer
+                </h3>
+
+
+                <p>
+
+                    Tests whether a proposed fare balances
+                    driver sustainability with passenger
+                    affordability.
+
+                </p>
+
+            </div>
+
+
+
+            <div class="fairness-arrow">
+
+                <i class="fa-solid fa-arrow-right"></i>
+
+            </div>
+
+
+
+            <div class="fairness-card glass-card reveal">
+
+                <div class="fairness-icon">
+
+                    <i class="fa-solid fa-person-walking-luggage"></i>
+
+                </div>
+
+
+                <h3>
+                    Passenger Protection
+                </h3>
+
+
+                <p>
+
+                    Prevents unnecessary changes caused by
+                    short-term cost fluctuations.
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     HOW IT WORKS
+====================================================== -->
+
+<section class="how-section section"
+         id="how-it-works">
+
+
+    <div class="container">
+
+
+        <div class="section-heading reveal">
+
+            <span class="section-tag">
+                HOW FARE KERALAM WORKS
+            </span>
+
+
+            <h2>
+
+                From real-world costs
+
+                <span>
+                    to a transparent fare.
+                </span>
+
+            </h2>
+
+        </div>
+
+
+
+        <div class="process">
+
+
+            <div class="process-step reveal">
+
+                <span>01</span>
+
+                <i class="fa-solid fa-database"></i>
+
+                <h3>
+                    Collect
+                </h3>
+
+                <p>
+                    Gather official and validated market data.
+                </p>
+
+            </div>
+
+
+            <div class="process-line"></div>
+
+
+            <div class="process-step reveal">
+
+                <span>02</span>
+
+                <i class="fa-solid fa-gears"></i>
+
+                <h3>
+                    Model
+                </h3>
+
+                <p>
+                    Calculate transport operating costs.
+                </p>
+
+            </div>
+
+
+            <div class="process-line"></div>
+
+
+            <div class="process-step reveal">
+
+                <span>03</span>
+
+                <i class="fa-solid fa-chart-line"></i>
+
+                <h3>
+                    Analyse
+                </h3>
+
+                <p>
+                    Compare costs with historical fares.
+                </p>
+
+            </div>
+
+
+            <div class="process-line"></div>
+
+
+            <div class="process-step reveal">
+
+                <span>04</span>
+
+                <i class="fa-solid fa-layer-group"></i>
+
+                <h3>
+                    Apply Slab
+                </h3>
+
+                <p>
+                    Use stable thresholds instead of daily changes.
+                </p>
+
+            </div>
+
+
+            <div class="process-line"></div>
+
+
+            <div class="process-step reveal">
+
+                <span>05</span>
+
+                <i class="fa-solid fa-scale-balanced"></i>
+
+                <h3>
+                    Test Fairness
+                </h3>
+
+                <p>
+                    Evaluate passenger and driver impact.
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     TRANSPORT TYPES
+====================================================== -->
+
+<section class="vehicles-section section">
+
+
+    <div class="container">
+
+
+        <div class="section-heading reveal">
+
+            <span class="section-tag">
+                TRANSPORT COVERAGE
+            </span>
+
+
+            <h2>
+
+                One platform for
+
+                <span>
+                    Kerala transport.
+                </span>
+
+            </h2>
+
+        </div>
+
+
+
+        <div class="vehicle-grid">
+
+
+            <div class="vehicle-card glass-card reveal">
+
+                <i class="fa-solid fa-taxi"></i>
+
+                <h3>
+                    Auto-rickshaws
+                </h3>
+
+                <p>
+                    Minimum fare and distance slabs.
+                </p>
+
+            </div>
+
+
+
+            <div class="vehicle-card glass-card reveal">
+
+                <i class="fa-solid fa-car"></i>
+
+                <h3>
+                    Taxis & Cabs
+                </h3>
+
+                <p>
+                    Hatchbacks to luxury vehicles.
+                </p>
+
+            </div>
+
+
+
+            <div class="vehicle-card glass-card reveal">
+
+                <i class="fa-solid fa-van-shuttle"></i>
+
+                <h3>
+                    Travellers
+                </h3>
+
+                <p>
+                    Small passenger vans and travellers.
+                </p>
+
+            </div>
+
+
+
+            <div class="vehicle-card glass-card reveal">
+
+                <i class="fa-solid fa-bus"></i>
+
+                <h3>
+                    Route Buses
+                </h3>
+
+                <p>
+                    Stage-based passenger fare structures.
+                </p>
+
+            </div>
+
+
+
+            <div class="vehicle-card glass-card reveal">
+
+                <i class="fa-solid fa-bus-simple"></i>
+
+                <h3>
+                    Tourist Buses
+                </h3>
+
+                <p>
+                    Tourist and contract carriage operations.
+                </p>
+
+            </div>
+
+
+
+            <div class="vehicle-card glass-card reveal">
+
+                <i class="fa-solid fa-bolt"></i>
+
+                <h3>
+                    Electric Vehicles
+                </h3>
+
+                <p>
+                    Electricity and battery economics.
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     DATA SOURCES
+====================================================== -->
+
+<section class="sources-section section"
+         id="sources">
+
+
+    <div class="container">
+
+
+        <div class="section-heading reveal">
+
+            <span class="section-tag">
+                DATA TRANSPARENCY
+            </span>
+
+
+            <h2>
+
+                Know where every number
+
+                <span>
+                    comes from.
+                </span>
+
+            </h2>
+
+
+            <p>
+
+                Official government sources are prioritized
+                wherever available. Market-based inputs are
+                clearly identified.
+
+            </p>
+
+        </div>
+
+
+
+        <div class="sources-table glass-card reveal">
+
+
+            <div class="source-row source-header">
+
+                <span>
+                    Component
+                </span>
+
+                <span>
+                    Value
+                </span>
+
+                <span>
+                    Source
+                </span>
+
+                <span>
+                    Updated
+                </span>
+
+            </div>
+
+
+
+            <div class="source-row">
+
+                <span>
+                    Petrol
+                </span>
+
+                <strong id="sourcePetrol">
+                    —
+                </strong>
+
+                <span>
+                    Official / verified
+                </span>
+
+                <span id="sourcePetrolDate">
+                    —
+                </span>
+
+            </div>
+
+
+
+            <div class="source-row">
+
+                <span>
+                    Diesel
+                </span>
+
+                <strong id="sourceDiesel">
+                    —
+                </strong>
+
+                <span>
+                    Official / verified
+                </span>
+
+                <span id="sourceDieselDate">
+                    —
+                </span>
+
+            </div>
+
+
+
+            <div class="source-row">
+
+                <span>
+                    CNG
+                </span>
+
+                <strong id="sourceCng">
+                    —
+                </strong>
+
+                <span>
+                    Verified source
+                </span>
+
+                <span id="sourceCngDate">
+                    —
+                </span>
+
+            </div>
+
+
+
+            <div class="source-row">
+
+                <span>
+                    Electricity
+                </span>
+
+                <strong id="sourceElectricity">
+                    —
+                </strong>
+
+                <span>
+                    Official tariff source
+                </span>
+
+                <span id="sourceElectricityDate">
+                    —
+                </span>
+
+            </div>
+
+
+
+            <div class="source-row">
+
+                <span>
+                    Tyres
+                </span>
+
+                <strong id="sourceTyres">
+                    —
+                </strong>
+
+                <span>
+                    Market basket
+                </span>
+
+                <span id="sourceTyresDate">
+                    —
+                </span>
+
+            </div>
+
+
+
+            <div class="source-row">
+
+                <span>
+                    Engine Oil
+                </span>
+
+                <strong id="sourceOil">
+                    —
+                </strong>
+
+                <span>
+                    Market basket
+                </span>
+
+                <span id="sourceOilDate">
+                    —
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     TRANSPARENCY NOTICE
+====================================================== -->
+
+<section class="transparency-section section">
+
+
+    <div class="container">
+
+
+        <div class="transparency-card glass-card reveal">
+
+
+            <div class="transparency-icon">
+
+                <i class="fa-solid fa-shield-halved"></i>
+
+            </div>
+
+
+
+            <div>
+
+                <span class="section-tag">
+                    IMPORTANT
+                </span>
+
+
+                <h3>
+                    Transparent modelling, not automatic legal fare setting.
+                </h3>
+
+
+                <p>
+
+                    Fare Keralam is designed as a data-driven
+                    analytical and simulation platform.
+
+                    Official government fares and notifications
+                    remain authoritative.
+
+                    The modelled sustainable fare is clearly
+                    separated from the legally notified fare.
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+</main>
+
+
+
+<!-- =====================================================
+     FOOTER
+====================================================== -->
+
+<footer class="footer">
+
+
+    <div class="container footer-grid">
+
+
+        <!-- BRAND -->
+
+        <div class="footer-brand">
+
+
+            <a href="#home"
+               class="logo">
+
+                <span class="logo-icon">
+
+                    <i class="fa-solid fa-route"></i>
+
+                </span>
+
+
+                <span class="logo-text">
+
+                    Fare
+                    <span>Keralam</span>
+
+                </span>
+
+            </a>
+
+
+            <p>
+
+                Building a transparent, data-driven and
+                sustainable transport fare system for Kerala.
+
+            </p>
+
+        </div>
+
+
+
+        <!-- PLATFORM -->
+
+        <div class="footer-links">
+
+            <h4>
+                Platform
+            </h4>
+
+
+            <a href="#calculator">
+                Fare Calculator
+            </a>
+
+
+            <a href="#costs">
+                Cost Index
+            </a>
+
+
+            <a href="#analysis">
+                Historical Analysis
+            </a>
+
+
+            <a href="#forecast">
+                AI Forecast
+            </a>
+
+        </div>
+
+
+
+        <!-- TRANSPORT -->
+
+        <div class="footer-links">
+
+            <h4>
+                Transport
+            </h4>
+
+
+            <a href="#calculator">
+                Auto-rickshaws
+            </a>
+
+
+            <a href="#calculator">
+                Taxis
+            </a>
+
+
+            <a href="#calculator">
+                Travellers
+            </a>
+
+
+            <a href="#calculator">
+                Buses
+            </a>
+
+        </div>
+
+
+
+        <!-- TRANSPARENCY -->
+
+        <div class="footer-links">
+
+            <h4>
+                Transparency
+            </h4>
+
+
+            <a href="#sources">
+                Data Sources
+            </a>
+
+
+            <a href="#how-it-works">
+                Methodology
+            </a>
+
+
+            <a href="#analysis">
+                Historical Data
+            </a>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- FOOTER BOTTOM -->
+
+    <div class="footer-bottom">
+
+
+        <div class="container">
+
+
+            <span>
+                © 2026 Fare Keralam
+            </span>
+
+
+            <span>
+                Smart • Fair • Transparent
+            </span>
+
+        </div>
+
+    </div>
+
+</footer>
+
+
+
+<!-- =====================================================
+     BACK TO TOP
+====================================================== -->
+
+<button class="back-to-top"
+        id="backToTop"
+        aria-label="Back to top">
+
+    <i class="fa-solid fa-arrow-up"></i>
+
+</button>
+
+
+
+<!-- =====================================================
+     MAIN JAVASCRIPT
+====================================================== -->
+
+<script src="script.js"></script>
+
+
+</body>
+
+</html>
