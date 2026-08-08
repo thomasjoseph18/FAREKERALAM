@@ -856,15 +856,23 @@ def fetch_iocl_fuel_prices():
     This function does not modify the database.
     """
 
-    try:
+        try:
         response = requests.get(
             IOCL_PRICE_URL,
             timeout=30,
+            allow_redirects=False,
             headers={
                 "User-Agent": (
-                    "Mozilla/5.0 "
-                    "(Fare Keralam official data updater)"
-                )
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) "
+                    "Chrome/131.0.0.0 Safari/537.36"
+                ),
+                "Accept": (
+                    "text/html,application/xhtml+xml,"
+                    "application/xml;q=0.9,*/*;q=0.8"
+                ),
+                "Accept-Language": "en-IN,en;q=0.9",
             }
         )
 
@@ -881,22 +889,21 @@ def fetch_iocl_fuel_prices():
         )
 
         return {
-            "success": True,
-            "source": IOCL_PRICE_URL,
-            "page_size": len(response.text),
-            "page_title": (
-                soup.title.get_text(strip=True)
-                if soup.title
-                else None
-            ),
-            "contains_petrol": "Petrol" in page_text,
-            "contains_diesel": "Diesel" in page_text,
-            "message": (
-                "IndianOil page successfully reached. "
-                "Price extraction will be added after "
-                "the page structure is verified."
-            )
-        }
+    "success": True,
+    "source": IOCL_PRICE_URL,
+    "status_code": response.status_code,
+    "page_size": len(response.text),
+    "page_title": (
+        soup.title.get_text(strip=True)
+        if soup.title
+        else None
+    ),
+    "redirect_location": response.headers.get(
+        "Location"
+    ),
+    "contains_petrol": "Petrol" in page_text,
+    "contains_diesel": "Diesel" in page_text
+}
 
     except requests.RequestException as error:
 
