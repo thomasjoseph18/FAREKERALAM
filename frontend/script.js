@@ -1,1784 +1,991 @@
-/* =========================================================
+/* ============================================================
    FARE KERALAM
-   Smart • Fair • Transparent
-   Main JavaScript
-========================================================= */
+   FRONTEND JAVASCRIPT
+============================================================ */
 
 "use strict";
 
 
-/* =========================================================
-   1. PRELOADER
-========================================================= */
+/* ============================================================
+   CONFIGURATION
+============================================================ */
 
-window.addEventListener("load", () => {
+const API_BASE =
+    "https://farekeralam.onrender.com";
 
-    const preloader = document.getElementById("preloader");
 
-    if (preloader) {
-        setTimeout(() => {
-            preloader.classList.add("hidden");
-        }, 500);
-    }
+/* ============================================================
+   DOM
+============================================================ */
 
-});
+const pageLoader =
+    document.getElementById("pageLoader");
 
+const siteHeader =
+    document.getElementById("siteHeader");
 
-/* =========================================================
-   2. NAVBAR
-========================================================= */
+const mobileMenuBtn =
+    document.getElementById("mobileMenuBtn");
 
-const navbar = document.querySelector(".navbar");
+const mainNav =
+    document.getElementById("mainNav");
 
-window.addEventListener("scroll", () => {
+const fareForm =
+    document.getElementById("fareForm");
 
-    if (!navbar) return;
+const categorySelect =
+    document.getElementById("category");
 
-    if (window.scrollY > 50) {
-        navbar.classList.add("scrolled");
-    } else {
-        navbar.classList.remove("scrolled");
-    }
+const energySelect =
+    document.getElementById("energy");
 
-});
+const seatingSelect =
+    document.getElementById("seating");
 
+const vehicleSelect =
+    document.getElementById("vehicle");
 
-/* =========================================================
-   3. MOBILE MENU
-========================================================= */
+const seatingGroup =
+    document.getElementById("seatingGroup");
 
-const menuToggle = document.querySelector(".menu-toggle");
-const navMenu = document.querySelector(".nav-menu");
-
-if (menuToggle && navMenu) {
-
-    menuToggle.addEventListener("click", () => {
-
-        navMenu.classList.toggle("active");
-
-        const icon = menuToggle.querySelector("i");
-
-        if (icon) {
-
-            if (navMenu.classList.contains("active")) {
-                icon.classList.remove("fa-bars");
-                icon.classList.add("fa-xmark");
-            } else {
-                icon.classList.remove("fa-xmark");
-                icon.classList.add("fa-bars");
-            }
-
-        }
-
-    });
-
-
-    document.querySelectorAll(".nav-menu a").forEach(link => {
-
-        link.addEventListener("click", () => {
-
-            navMenu.classList.remove("active");
-
-            const icon = menuToggle.querySelector("i");
-
-            if (icon) {
-                icon.classList.remove("fa-xmark");
-                icon.classList.add("fa-bars");
-            }
-
-        });
-
-    });
-
-}
-
-
-/* =========================================================
-   4. SMOOTH SCROLL
-========================================================= */
-
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-
-    anchor.addEventListener("click", function (event) {
-
-        const targetId = this.getAttribute("href");
-
-        if (!targetId || targetId === "#") return;
-
-        const target = document.querySelector(targetId);
-
-        if (!target) return;
-
-        event.preventDefault();
-
-        target.scrollIntoView({
-            behavior: "smooth",
-            block: "start"
-        });
-
-    });
-
-});
-
-
-/* =========================================================
-   5. REVEAL ANIMATIONS
-========================================================= */
-
-const revealElements =
-    document.querySelectorAll(
-        ".reveal, .glass-card, .section-heading"
-    );
-
-const revealObserver =
-    new IntersectionObserver(
-        (entries, observer) => {
-
-            entries.forEach(entry => {
-
-                if (entry.isIntersecting) {
-
-                    entry.target.classList.add("active");
-
-                    observer.unobserve(entry.target);
-
-                }
-
-            });
-
-        },
-        {
-            threshold: 0.12
-        }
-    );
-
-
-revealElements.forEach(element => {
-
-    element.classList.add("reveal");
-
-    revealObserver.observe(element);
-
-});
-
-
-/* =========================================================
-   6. FARE KERALAM FARE MODEL
-=========================================================
-
-   IMPORTANT:
-
-   These are PROJECT PARAMETERS.
-
-   They are NOT presented as current official
-   Kerala Government rates.
-
-   Once verified government notifications/data
-   are connected, these values can be replaced
-   automatically.
-========================================================= */
-
-
-/*
-    General vehicle categories
-
-    The important principle of Fare Keralam:
-
-    Different fuel types should NOT automatically
-    give the driver different profit margins.
-
-    Instead:
-
-        Fare = Operating Cost + Driver Margin
-
-    Operating cost is calculated using:
-
-        Fuel
-        Maintenance
-        Tyres
-        Engine oil
-        Depreciation
-        Insurance / permits
-        Other operating expenses
-
-*/
-
-
-const vehicleData = {
-
-    auto: {
-
-        name: "Auto Rickshaw",
-
-        subtypes: {
-
-            petrol: {
-                fuel: "Petrol",
-                mileage: 30,
-                fuelPrice: 105
-            },
-
-            cng: {
-                fuel: "CNG",
-                mileage: 30,
-                fuelPrice: 90
-            },
-
-            diesel: {
-                fuel: "Diesel",
-                mileage: 32,
-                fuelPrice: 95
-            }
-
-        },
-
-        minimumFare: 30,
-
-        minimumDistance: 1.5,
-
-        additionalRate: 15,
-
-        additionalDistance: 1,
-
-        driverMargin: 0.35
-
-    },
-
-
-    taxi: {
-
-        name: "Taxi Car",
-
-        subtypes: {
-
-            petrol: {
-                fuel: "Petrol",
-                mileage: 14,
-                fuelPrice: 105
-            },
-
-            diesel: {
-                fuel: "Diesel",
-                mileage: 18,
-                fuelPrice: 95
-            },
-
-            cng: {
-                fuel: "CNG",
-                mileage: 22,
-                fuelPrice: 90
-            },
-
-            electric: {
-                fuel: "Electric",
-                mileage: 7,
-                fuelPrice: 9
-            }
-
-        },
-
-        minimumFare: 200,
-
-        minimumDistance: 4,
-
-        additionalRate: 25,
-
-        additionalDistance: 1,
-
-        driverMargin: 0.35
-
-    },
-
-
-    sedan: {
-
-        name: "Sedan",
-
-        subtypes: {
-
-            petrol: {
-                fuel: "Petrol",
-                mileage: 13,
-                fuelPrice: 105
-            },
-
-            diesel: {
-                fuel: "Diesel",
-                mileage: 18,
-                fuelPrice: 95
-            },
-
-            cng: {
-                fuel: "CNG",
-                mileage: 20,
-                fuelPrice: 90
-            },
-
-            electric: {
-                fuel: "Electric",
-                mileage: 6.5,
-                fuelPrice: 9
-            }
-
-        },
-
-        minimumFare: 250,
-
-        minimumDistance: 4,
-
-        additionalRate: 28,
-
-        additionalDistance: 1,
-
-        driverMargin: 0.35
-
-    },
-
-
-    suv: {
-
-        name: "SUV / MUV",
-
-        subtypes: {
-
-            petrol: {
-                fuel: "Petrol",
-                mileage: 9,
-                fuelPrice: 105
-            },
-
-            diesel: {
-                fuel: "Diesel",
-                mileage: 13,
-                fuelPrice: 95
-            },
-
-            cng: {
-                fuel: "CNG",
-                mileage: 15,
-                fuelPrice: 90
-            },
-
-            electric: {
-                fuel: "Electric",
-                mileage: 5,
-                fuelPrice: 9
-            }
-
-        },
-
-        minimumFare: 300,
-
-        minimumDistance: 4,
-
-        additionalRate: 35,
-
-        additionalDistance: 1,
-
-        driverMargin: 0.35
-
-    },
-
-
-    traveller: {
-
-        name: "Traveller / Van",
-
-        subtypes: {
-
-            diesel: {
-                fuel: "Diesel",
-                mileage: 11,
-                fuelPrice: 95
-            },
-
-            petrol: {
-                fuel: "Petrol",
-                mileage: 8,
-                fuelPrice: 105
-            },
-
-            electric: {
-                fuel: "Electric",
-                mileage: 5,
-                fuelPrice: 9
-            }
-
-        },
-
-        minimumFare: 500,
-
-        minimumDistance: 5,
-
-        additionalRate: 50,
-
-        additionalDistance: 1,
-
-        driverMargin: 0.30
-
-    },
-
-
-    bus: {
-
-        name: "Route Bus",
-
-        subtypes: {
-
-            diesel: {
-                fuel: "Diesel",
-                mileage: 4,
-                fuelPrice: 95
-            },
-
-            electric: {
-                fuel: "Electric",
-                mileage: 1.8,
-                fuelPrice: 9
-            }
-
-        },
-
-        minimumFare: 10,
-
-        minimumDistance: 1,
-
-        additionalRate: 2,
-
-        additionalDistance: 1,
-
-        driverMargin: 0.20
-
-    },
-
-
-    touristBus: {
-
-        name: "Tourist Bus",
-
-        subtypes: {
-
-            diesel: {
-                fuel: "Diesel",
-                mileage: 4,
-                fuelPrice: 95
-            },
-
-            electric: {
-                fuel: "Electric",
-                mileage: 1.8,
-                fuelPrice: 9
-            }
-
-        },
-
-        minimumFare: 1500,
-
-        minimumDistance: 10,
-
-        additionalRate: 100,
-
-        additionalDistance: 1,
-
-        driverMargin: 0.25
-
-    }
-
-};
-
-
-/* =========================================================
-   7. FUEL PRICE INDEX
-========================================================= */
-
-const fuelPrices = {
-
-    petrol: 105,
-
-    diesel: 95,
-
-    cng: 90,
-
-    electric: 9
-
-};
-
-
-/* =========================================================
-   8. DOM ELEMENTS
-========================================================= */
-
-const vehicleType =
-    document.getElementById("vehicleType");
-
-const vehicleSubtype =
-    document.getElementById("vehicleSubtype");
+const vehicleGroup =
+    document.getElementById("vehicleGroup");
 
 const distanceInput =
     document.getElementById("distance");
 
-const fareResult =
-    document.getElementById("fareResult");
+const calculateBtn =
+    document.getElementById("calculateBtn");
 
-const fareVehicle =
-    document.getElementById("fareVehicle");
+const resultCard =
+    document.getElementById("resultCard");
 
-const fareFuel =
-    document.getElementById("fareFuel");
+const resultEmpty =
+    document.getElementById("resultEmpty");
 
-const fareDistance =
-    document.getElementById("fareDistance");
+const resultSuccess =
+    document.getElementById("resultSuccess");
 
-const fuelCost =
-    document.getElementById("fuelCost");
+const resultError =
+    document.getElementById("resultError");
 
-const operatingCost =
-    document.getElementById("operatingCost");
+const fareAmount =
+    document.getElementById("fareAmount");
 
-const driverProfit =
-    document.getElementById("driverProfit");
+const resultCategory =
+    document.getElementById("resultCategory");
 
-const fareTotal =
-    document.getElementById("fareTotal");
+const resultEnergy =
+    document.getElementById("resultEnergy");
 
-const calculateButton =
-    document.getElementById("calculateFare");
+const resultDistance =
+    document.getElementById("resultDistance");
+
+const resultSeats =
+    document.getElementById("resultSeats");
+
+const calculationMethod =
+    document.getElementById("calculationMethod");
+
+const fareRuleNote =
+    document.getElementById("fareRuleNote");
+
+const errorMessage =
+    document.getElementById("errorMessage");
+
+const resetBtn =
+    document.getElementById("resetBtn");
+
+const retryBtn =
+    document.getElementById("retryBtn");
+
+const toast =
+    document.getElementById("toast");
+
+const toastMessage =
+    document.getElementById("toastMessage");
+
+const currentYear =
+    document.getElementById("currentYear");
+
+const footerStatus =
+    document.getElementById("footerStatus");
+
+const categoryCount =
+    document.getElementById("categoryCount");
+
+const energyCount =
+    document.getElementById("energyCount");
+
+const vehicleCount =
+    document.getElementById("vehicleCount");
+
+const vehicleCountStat =
+    document.getElementById("vehicleCountStat");
 
 
-/* =========================================================
-   9. UPDATE SUBTYPE DROPDOWN
-========================================================= */
+/* ============================================================
+   STATE
+============================================================ */
 
-function updateVehicleSubtypes() {
+let categories = [];
+let energySources = [];
+let vehicles = [];
 
-    if (!vehicleType || !vehicleSubtype) return;
+let lastCalculation = null;
 
-    const type =
-        vehicleType.value;
 
-    vehicleSubtype.innerHTML =
-        `<option value="">Select fuel / power</option>`;
+/* ============================================================
+   INITIALIZATION
+============================================================ */
 
-    if (!type || !vehicleData[type]) {
+document.addEventListener(
+    "DOMContentLoaded",
+    init
+);
 
-        vehicleSubtype.disabled = true;
 
-        return;
-    }
+async function init() {
 
-    const subtypes =
-        vehicleData[type].subtypes;
+    currentYear.textContent =
+        new Date().getFullYear();
 
-    Object.keys(subtypes).forEach(key => {
+    setupNavigation();
 
-        const data =
-            subtypes[key];
+    setupScrollEffects();
 
-        const option =
-            document.createElement("option");
+    setupForm();
 
-        option.value = key;
+    setupRevealAnimations();
 
-        option.textContent =
-            data.fuel;
+    await loadInitialData();
 
-        vehicleSubtype.appendChild(option);
+    checkAPIStatus();
+
+    setTimeout(() => {
+
+        pageLoader.classList.add("hidden");
+
+        document.body.classList.remove("loading");
+
+    }, 500);
+}
+
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+
+function setupNavigation() {
+
+    mobileMenuBtn.addEventListener(
+        "click",
+        () => {
+
+            mainNav.classList.toggle("open");
+
+            const icon =
+                mobileMenuBtn.querySelector("i");
+
+            if (mainNav.classList.contains("open")) {
+
+                icon.classList.remove(
+                    "fa-bars"
+                );
+
+                icon.classList.add(
+                    "fa-xmark"
+                );
+
+            } else {
+
+                icon.classList.remove(
+                    "fa-xmark"
+                );
+
+                icon.classList.add(
+                    "fa-bars"
+                );
+            }
+
+        }
+    );
+
+
+    document.querySelectorAll(
+        ".nav-link, .main-nav a"
+    ).forEach(link => {
+
+        link.addEventListener(
+            "click",
+            () => {
+
+                mainNav.classList.remove(
+                    "open"
+                );
+
+                const icon =
+                    mobileMenuBtn.querySelector("i");
+
+                icon.classList.remove(
+                    "fa-xmark"
+                );
+
+                icon.classList.add(
+                    "fa-bars"
+                );
+
+            }
+        );
 
     });
 
-    vehicleSubtype.disabled = false;
 
-}
+    document.querySelectorAll(
+        'a[href^="#"]'
+    ).forEach(link => {
 
+        link.addEventListener(
+            "click",
+            event => {
 
-if (vehicleType) {
+                const targetId =
+                    link.getAttribute("href");
 
-    vehicleType.addEventListener(
-        "change",
-        updateVehicleSubtypes
-    );
+                if (
+                    !targetId ||
+                    targetId === "#"
+                ) {
+                    return;
+                }
 
-}
+                const target =
+                    document.querySelector(
+                        targetId
+                    );
 
+                if (!target) {
+                    return;
+                }
 
-/* =========================================================
-   10. FUEL PRICE UPDATE
-========================================================= */
+                event.preventDefault();
 
-function getCurrentFuelPrice(fuel) {
+                target.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
 
-    return fuelPrices[fuel] || 0;
-
-}
-
-
-/* =========================================================
-   11. OPERATING COST CALCULATION
-========================================================= */
-
-function calculateOperatingCost(
-    distance,
-    vehicle,
-    subtype
-) {
-
-    const data =
-        vehicleData[vehicle].subtypes[subtype];
-
-    if (!data) return 0;
-
-    const fuelPrice =
-        getCurrentFuelPrice(subtype);
-
-    const mileage =
-        data.mileage;
-
-    /*
-        Fuel consumption
-    */
-
-    const fuelUsed =
-        distance / mileage;
-
-    const fuelExpense =
-        fuelUsed * fuelPrice;
-
-
-    /*
-        Maintenance factor
-
-        This represents:
-
-        tyres
-        engine oil
-        servicing
-        wear & tear
-    */
-
-    let maintenanceRate;
-
-    switch (vehicle) {
-
-        case "auto":
-            maintenanceRate = 2.2;
-            break;
-
-        case "taxi":
-            maintenanceRate = 3.0;
-            break;
-
-        case "sedan":
-            maintenanceRate = 3.5;
-            break;
-
-        case "suv":
-            maintenanceRate = 5.0;
-            break;
-
-        case "traveller":
-            maintenanceRate = 6.5;
-            break;
-
-        case "bus":
-            maintenanceRate = 8.0;
-            break;
-
-        case "touristBus":
-            maintenanceRate = 10.0;
-            break;
-
-        default:
-            maintenanceRate = 3;
-    }
-
-
-    const maintenanceCost =
-        distance * maintenanceRate;
-
-
-    return {
-
-        fuelUsed,
-
-        fuelExpense,
-
-        maintenanceCost,
-
-        totalOperatingCost:
-            fuelExpense +
-            maintenanceCost
-
-    };
-
-}
-
-
-/* =========================================================
-   12. SLAB CALCULATION
-========================================================= */
-
-function calculateSlabFare(
-    distance,
-    vehicle,
-    subtype
-) {
-
-    const data =
-        vehicleData[vehicle];
-
-    if (!data) return null;
-
-    /*
-        Minimum distance slab
-    */
-
-    if (
-        distance <=
-        data.minimumDistance
-    ) {
-
-        return {
-
-            fare:
-                data.minimumFare,
-
-            slab:
-                `Up to ${data.minimumDistance} km`,
-
-            extraDistance: 0
-
-        };
-
-    }
-
-
-    /*
-        Distance beyond minimum slab
-    */
-
-    const extraDistance =
-        distance -
-        data.minimumDistance;
-
-
-    const additionalUnits =
-        Math.ceil(
-            extraDistance /
-            data.additionalDistance
+            }
         );
-
-
-    const additionalFare =
-        additionalUnits *
-        data.additionalRate;
-
-
-    const fare =
-        data.minimumFare +
-        additionalFare;
-
-
-    return {
-
-        fare,
-
-        slab:
-            `Above ${data.minimumDistance} km`,
-
-        extraDistance,
-
-        additionalUnits,
-
-        additionalFare
-
-    };
-
-}
-
-
-/* =========================================================
-   13. CALCULATE FARE
-========================================================= */
-
-function calculateFare() {
-
-    if (
-        !vehicleType ||
-        !vehicleSubtype ||
-        !distanceInput
-    ) return;
-
-
-    const vehicle =
-        vehicleType.value;
-
-    const subtype =
-        vehicleSubtype.value;
-
-    const distance =
-        parseFloat(
-            distanceInput.value
-        );
-
-
-    if (!vehicle) {
-
-        showMessage(
-            "Please select a vehicle type."
-        );
-
-        return;
-
-    }
-
-
-    if (!subtype) {
-
-        showMessage(
-            "Please select the fuel / power type."
-        );
-
-        return;
-
-    }
-
-
-    if (
-        !distance ||
-        distance <= 0
-    ) {
-
-        showMessage(
-            "Please enter a valid distance."
-        );
-
-        return;
-
-    }
-
-
-    const operating =
-        calculateOperatingCost(
-            distance,
-            vehicle,
-            subtype
-        );
-
-
-    const slab =
-        calculateSlabFare(
-            distance,
-            vehicle,
-            subtype
-        );
-
-
-    if (!operating || !slab) return;
-
-
-    /*
-        The displayed fare follows
-        the current slab model.
-
-        The operating cost is shown
-        separately for transparency.
-    */
-
-    const totalFare =
-        slab.fare;
-
-
-    const profit =
-        Math.max(
-            0,
-            totalFare -
-            operating.totalOperatingCost
-        );
-
-
-    updateFareUI({
-
-        vehicle,
-        subtype,
-        distance,
-
-        operating,
-
-        slab,
-
-        totalFare,
-
-        profit
 
     });
 
 }
 
 
-/* =========================================================
-   14. UPDATE RESULT UI
-========================================================= */
+/* ============================================================
+   SCROLL EFFECTS
+============================================================ */
 
-function updateFareUI(result) {
+function setupScrollEffects() {
 
-    const {
-        vehicle,
-        subtype,
-        distance,
-        operating,
-        slab,
-        totalFare,
-        profit
-    } = result;
+    window.addEventListener(
+        "scroll",
+        () => {
 
+            if (window.scrollY > 30) {
 
-    if (fareResult) {
+                siteHeader.classList.add(
+                    "scrolled"
+                );
 
-        fareResult.textContent =
-            `₹${Math.round(totalFare)}`;
+            } else {
 
-    }
+                siteHeader.classList.remove(
+                    "scrolled"
+                );
+            }
 
+            updateActiveNavigation();
 
-    if (fareVehicle) {
-
-        fareVehicle.textContent =
-            vehicleData[vehicle].name;
-
-    }
-
-
-    if (fareFuel) {
-
-        fareFuel.textContent =
-            vehicleData[vehicle]
-                .subtypes[subtype]
-                .fuel;
-
-    }
-
-
-    if (fareDistance) {
-
-        fareDistance.textContent =
-            `${distance.toFixed(1)} km`;
-
-    }
-
-
-    if (fuelCost) {
-
-        fuelCost.textContent =
-            `₹${Math.round(
-                operating.fuelExpense
-            )}`;
-
-    }
-
-
-    if (operatingCost) {
-
-        operatingCost.textContent =
-            `₹${Math.round(
-                operating.totalOperatingCost
-            )}`;
-
-    }
-
-
-    if (driverProfit) {
-
-        driverProfit.textContent =
-            `₹${Math.round(profit)}`;
-
-    }
-
-
-    if (fareTotal) {
-
-        fareTotal.textContent =
-            `₹${Math.round(totalFare)}`;
-
-    }
-
-
-    /*
-        Update slab progress
-    */
-
-    updateSlabProgress(
-        distance,
-        vehicle
+        },
+        { passive: true }
     );
-
-
-    /*
-        Update result status
-    */
-
-    const resultStatus =
-        document.querySelector(
-            ".result-status"
-        );
-
-    if (resultStatus) {
-
-        resultStatus.textContent =
-            "CALCULATED";
-
-    }
 
 }
 
 
-/* =========================================================
-   15. SLAB PROGRESS
-========================================================= */
+function updateActiveNavigation() {
 
-function updateSlabProgress(
-    distance,
-    vehicle
-) {
-
-    const data =
-        vehicleData[vehicle];
-
-    if (!data) return;
-
-    const progress =
-        document.querySelector(
-            ".slab-progress-fill"
+    const sections =
+        document.querySelectorAll(
+            "main section[id]"
         );
 
-    if (!progress) return;
+    const scrollPosition =
+        window.scrollY + 180;
 
+    sections.forEach(section => {
 
-    /*
-        Visual representation only.
-    */
+        const top =
+            section.offsetTop;
 
-    const percentage =
-        Math.min(
-            100,
-            (
-                distance /
-                Math.max(
-                    data.minimumDistance * 5,
-                    20
-                )
-            ) * 100
-        );
+        const height =
+            section.offsetHeight;
 
-
-    progress.style.width =
-        `${percentage}%`;
-
-
-    const activeSlab =
-        document.querySelector(
-            ".slab-active"
-        );
-
-    if (activeSlab) {
+        const id =
+            section.getAttribute("id");
 
         if (
-            distance <=
-            data.minimumDistance
+            scrollPosition >= top &&
+            scrollPosition < top + height
         ) {
 
-            activeSlab.textContent =
-                "Minimum fare slab";
+            document
+                .querySelectorAll(".nav-link")
+                .forEach(link => {
 
-        } else {
+                    link.classList.remove(
+                        "active"
+                    );
 
-            activeSlab.textContent =
-                `₹${data.additionalRate}/additional unit`;
+                });
 
-        }
+            const active =
+                document.querySelector(
+                    `.nav-link[href="#${id}"]`
+                );
 
-    }
-
-}
-
-
-/* =========================================================
-   16. CALCULATE BUTTON
-========================================================= */
-
-if (calculateButton) {
-
-    calculateButton.addEventListener(
-        "click",
-        calculateFare
-    );
-
-}
-
-
-/* =========================================================
-   17. ENTER KEY CALCULATION
-========================================================= */
-
-if (distanceInput) {
-
-    distanceInput.addEventListener(
-        "keydown",
-        event => {
-
-            if (
-                event.key ===
-                "Enter"
-            ) {
-
-                calculateFare();
-
+            if (active) {
+                active.classList.add(
+                    "active"
+                );
             }
-
         }
-    );
-
-}
-
-
-/* =========================================================
-   18. USER MESSAGE
-========================================================= */
-
-function showMessage(message) {
-
-    /*
-        Use existing result card
-        rather than browser alert.
-    */
-
-    if (fareResult) {
-
-        fareResult.textContent =
-            "—";
-
-    }
-
-    const messageElement =
-        document.querySelector(
-            ".fare-note p"
-        );
-
-    if (messageElement) {
-
-        messageElement.textContent =
-            message;
-
-    }
-
-}
-
-
-/* =========================================================
-   19. FUEL PRICE INDEX
-=========================================================
-
-   General formula:
-
-       Fuel Index =
-       Current Fuel Cost /
-       Reference Fuel Cost
-
-   The system does NOT need to
-   change the fare every day.
-
-   Instead the index can be used
-   to determine when a new slab
-   should be triggered.
-========================================================= */
-
-function calculateFuelIndex(
-    fuel,
-    referencePrice
-) {
-
-    const currentPrice =
-        getCurrentFuelPrice(fuel);
-
-    if (!referencePrice) return 1;
-
-    return (
-        currentPrice /
-        referencePrice
-    );
-
-}
-
-
-/* =========================================================
-   20. OPERATING COST INDEX
-========================================================= */
-
-function calculateOperatingCostIndex(
-    vehicle,
-    subtype,
-    referencePrice
-) {
-
-    const data =
-        vehicleData[vehicle]
-            ?.subtypes[subtype];
-
-    if (!data) return 1;
-
-
-    const currentPrice =
-        getCurrentFuelPrice(subtype);
-
-
-    const currentFuelCostPerKm =
-        currentPrice /
-        data.mileage;
-
-
-    const referenceFuelCostPerKm =
-        referencePrice /
-        data.mileage;
-
-
-    return (
-        currentFuelCostPerKm /
-        referenceFuelCostPerKm
-    );
-
-}
-
-
-/* =========================================================
-   21. SLAB TRIGGER LOGIC
-=========================================================
-
-   Example:
-
-   Fuel price does NOT immediately
-   change the fare.
-
-   The system waits until the
-   calculated operating-cost index
-   crosses a predefined threshold.
-
-========================================================= */
-
-const slabPolicy = {
-
-    reviewThreshold: 0.10,
-
-    /*
-        10% operating-cost change
-        triggers a fare review.
-
-        This is a project policy,
-        not an official government rule.
-    */
-
-    implementationThreshold: 0.15
-
-};
-
-
-function shouldReviewFare(
-    currentIndex
-) {
-
-    return (
-        Math.abs(
-            currentIndex - 1
-        ) >=
-        slabPolicy.reviewThreshold
-    );
-
-}
-
-
-/* =========================================================
-   22. FAIRNESS CHECK
-========================================================= */
-
-function calculateFairness(
-    fare,
-    operatingCost
-) {
-
-    if (
-        !fare ||
-        fare <= 0
-    ) {
-
-        return 0;
-
-    }
-
-
-    return (
-        (fare - operatingCost) /
-        fare
-    ) * 100;
-
-}
-
-
-/* =========================================================
-   23. LIVE FUEL PRICE DISPLAY
-========================================================= */
-
-function updateFuelPriceDisplay() {
-
-    const fuelElements =
-        document.querySelectorAll(
-            "[data-fuel-price]"
-        );
-
-
-    fuelElements.forEach(element => {
-
-        const fuel =
-            element.dataset.fuelPrice;
-
-        const price =
-            getCurrentFuelPrice(fuel);
-
-        element.textContent =
-            `₹${price.toFixed(2)}`;
 
     });
 
 }
 
 
-updateFuelPriceDisplay();
+/* ============================================================
+   API
+============================================================ */
 
-
-/* =========================================================
-   24. FUEL PRICE DATA UPDATE
-=========================================================
-
-   Later this function can be connected
-   to verified government / official
-   fuel-price sources.
-
-   Example:
-
-       updateFuelPrice("petrol", 104.90)
-
-========================================================= */
-
-function updateFuelPrice(
-    fuel,
-    price
+async function apiFetch(
+    endpoint,
+    options = {}
 ) {
 
-    if (
-        !fuel ||
-        typeof price !== "number" ||
-        price <= 0
-    ) return;
+    const response =
+        await fetch(
+            `${API_BASE}${endpoint}`,
+            {
+                ...options,
 
+                headers: {
+                    "Accept":
+                        "application/json",
 
-    fuelPrices[fuel] =
-        price;
+                    "Content-Type":
+                        "application/json",
 
-
-    /*
-        Update vehicle database
-    */
-
-    Object.keys(vehicleData)
-        .forEach(vehicle => {
-
-            const subtypes =
-                vehicleData[vehicle]
-                    .subtypes;
-
-            if (subtypes[fuel]) {
-
-                subtypes[fuel]
-                    .fuelPrice =
-                    price;
-
+                    ...(options.headers || {})
+                }
             }
-
-        });
-
-
-    updateFuelPriceDisplay();
-
-}
-
-
-/* =========================================================
-   25. CHART.JS — FARE / FUEL ANALYSIS
-========================================================= */
-
-const chartCanvas =
-    document.getElementById(
-        "fareCostChart"
-    );
-
-
-let fareCostChart = null;
-
-
-function createFareChart() {
-
-    if (!chartCanvas) return;
-
-    /*
-        Chart.js is expected to be
-        loaded in index.html.
-    */
-
-    if (
-        typeof Chart ===
-        "undefined"
-    ) {
-
-        console.warn(
-            "Chart.js is not loaded."
         );
 
-        return;
+
+    let data = null;
+
+    try {
+
+        data =
+            await response.json();
+
+    } catch {
+
+        data = null;
 
     }
 
 
-    const ctx =
-        chartCanvas.getContext(
-            "2d"
+    if (!response.ok) {
+
+        const message =
+            extractAPIError(
+                data,
+                response.status
+            );
+
+        throw new Error(message);
+    }
+
+
+    return data;
+}
+
+
+function extractAPIError(
+    data,
+    status
+) {
+
+    if (!data) {
+
+        return `Server returned HTTP ${status}.`;
+    }
+
+    if (
+        typeof data.detail === "string"
+    ) {
+
+        return data.detail;
+    }
+
+    if (
+        data.detail &&
+        typeof data.detail.message === "string"
+    ) {
+
+        return data.detail.message;
+    }
+
+    if (
+        typeof data.message === "string"
+    ) {
+
+        return data.message;
+    }
+
+    return `Server returned HTTP ${status}.`;
+}
+
+
+/* ============================================================
+   INITIAL DATA
+============================================================ */
+
+async function loadInitialData() {
+
+    try {
+
+        const [
+            categoryData,
+            energyData,
+            vehicleData
+        ] = await Promise.all([
+
+            apiFetch(
+                "/api/categories"
+            ),
+
+            apiFetch(
+                "/api/energy-sources"
+            ),
+
+            apiFetch(
+                "/api/vehicles"
+            )
+
+        ]);
+
+
+        categories =
+            categoryData.categories || [];
+
+        energySources =
+            energyData.energy_sources || [];
+
+        vehicles =
+            vehicleData.vehicles || [];
+
+
+        populateCategories();
+
+        populateEnergySources();
+
+        updateStats();
+
+
+    } catch (error) {
+
+        console.error(
+            "Initial API loading failed:",
+            error
+        );
+
+        /*
+         * Keep the frontend usable even if
+         * the API temporarily takes time to
+         * wake up on Render.
+         */
+
+        showToast(
+            "Backend is waking up. Please try again shortly."
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   CATEGORIES
+============================================================ */
+
+function populateCategories() {
+
+    categorySelect.innerHTML = `
+        <option value="">
+            Select vehicle category
+        </option>
+    `;
+
+
+    categories.forEach(category => {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            category.name;
+
+        option.textContent =
+            category.name;
+
+        option.dataset.requiresModel =
+            category.requires_model;
+
+        option.dataset.requiresSeating =
+            category.requires_seating_capacity;
+
+        categorySelect.appendChild(
+            option
+        );
+
+    });
+
+}
+
+
+/* ============================================================
+   ENERGY SOURCES
+============================================================ */
+
+function populateEnergySources() {
+
+    energySelect.innerHTML = `
+        <option value="">
+            Select energy
+        </option>
+    `;
+
+
+    energySources.forEach(
+        energy => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                energy.name;
+
+            option.textContent =
+                energy.name;
+
+            energySelect.appendChild(
+                option
+            );
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   CATEGORY CHANGE
+============================================================ */
+
+categorySelect.addEventListener(
+    "change",
+    handleCategoryChange
+);
+
+
+function handleCategoryChange() {
+
+    const categoryName =
+        categorySelect.value;
+
+    const category =
+        categories.find(
+            item =>
+                item.name === categoryName
         );
 
 
-    fareCostChart =
-        new Chart(
-            ctx,
-            {
+    if (!category) {
 
-                type: "line",
+        resetDependentFields();
 
-                data: {
+        return;
+    }
 
-                    labels: [
-                        "2017",
-                        "2018",
-                        "2019",
-                        "2020",
-                        "2021",
-                        "2022",
-                        "2023",
-                        "2024",
-                        "2025",
-                        "2026"
-                    ],
 
-                    datasets: [
+    updateVehicleModels();
 
-                        {
+    updateSeatingOptions();
 
-                            label:
-                                "Fuel Cost Index",
 
-                            data: [
-                                100,
-                                104,
-                                108,
-                                105,
-                                115,
-                                128,
-                                132,
-                                137,
-                                141,
-                                145
-                            ],
+    /*
+     * Vehicle model is only required
+     * for categories that need it.
+     */
 
-                            tension: .35,
+    if (category.requires_model) {
 
-                            fill: false
+        vehicleGroup.style.display =
+            "block";
 
-                        },
+    } else {
 
-                        {
+        vehicleGroup.style.display =
+            "none";
 
-                            label:
-                                "Fare Index",
+        vehicleSelect.value =
+            "";
 
-                            data: [
-                                100,
-                                100,
-                                104,
-                                104,
-                                110,
-                                118,
-                                122,
-                                128,
-                                132,
-                                135
-                            ],
+    }
 
-                            tension: .35,
 
-                            fill: false
+    /*
+     * Seating capacity
+     */
 
-                        }
+    if (
+        category.requires_seating_capacity
+    ) {
 
-                    ]
+        seatingGroup.style.display =
+            "block";
 
-                },
+    } else {
 
-                options: {
+        seatingGroup.style.display =
+            "none";
 
-                    responsive: true,
+        seatingSelect.value =
+            "";
 
-                    maintainAspectRatio: false,
+    }
 
-                    interaction: {
+}
 
-                        mode: "index",
 
-                        intersect: false
+/* ============================================================
+   ENERGY CHANGE
+============================================================ */
 
-                    },
+energySelect.addEventListener(
+    "change",
+    () => {
 
-                    plugins: {
+        updateVehicleModels();
 
-                        legend: {
+        updateSeatingOptions();
 
-                            labels: {
+    }
+);
 
-                                color:
-                                    "#b8c0d9",
 
-                                font: {
+/* ============================================================
+   SEATING CHANGE
+============================================================ */
 
-                                    size: 10
+seatingSelect.addEventListener(
+    "change",
+    () => {
 
-                                }
+        updateVehicleModels();
 
-                            }
+    }
+);
 
-                        }
 
-                    },
+/* ============================================================
+   UPDATE VEHICLES
+============================================================ */
 
-                    scales: {
+function updateVehicleModels() {
 
-                        x: {
+    const category =
+        categorySelect.value;
 
-                            ticks: {
+    const energy =
+        energySelect.value;
 
-                                color:
-                                    "#78829e",
+    const seating =
+        seatingSelect.value;
 
-                                font: {
 
-                                    size: 9
+    vehicleSelect.innerHTML = `
+        <option value="">
+            Select vehicle model
+        </option>
+    `;
 
-                                }
 
-                            },
+    if (!category) {
+        return;
+    }
 
-                            grid: {
 
-                                color:
-                                    "rgba(255,255,255,.04)"
+    const categoryObject =
+        categories.find(
+            item =>
+                item.name === category
+        );
 
-                            }
 
-                        },
+    let filtered =
+        vehicles.filter(
+            vehicle => {
 
-                        y: {
+                /*
+                 * Vehicle category
+                 */
 
-                            ticks: {
+                const matchesCategory =
+                    getCategoryName(
+                        vehicle.category_id
+                    ) === category;
 
-                                color:
-                                    "#78829e",
+                if (!matchesCategory) {
+                    return false;
+                }
 
-                                font: {
 
-                                    size: 9
+                /*
+                 * Energy
+                 */
 
-                                }
+                if (energy) {
 
-                            },
+                    const energyName =
+                        getEnergyName(
+                            vehicle.energy_source_id
+                        );
 
-                            grid: {
+                    if (
+                        energyName !== energy
+                    ) {
+                        return false;
+                    }
+                }
 
-                                color:
-                                    "rgba(255,255,255,.04)"
 
-                            }
+                /*
+                 * Seating
+                 */
 
-                        }
+                if (seating) {
 
+                    if (
+                        Number(
+                            vehicle.seating_capacity
+                        ) !== Number(seating)
+                    ) {
+
+                        return false;
+                    }
+                }
+
+
+                return true;
+
+            }
+        );
+
+
+    /*
+     * Remove duplicate vehicle names.
+     */
+
+    const unique =
+        new Map();
+
+    filtered.forEach(
+        vehicle => {
+
+            if (
+                !unique.has(
+                    vehicle.name
+                )
+            ) {
+
+                unique.set(
+                    vehicle.name,
+                    vehicle
+                );
+            }
+
+        }
+    );
+
+
+    Array.from(
+        unique.values()
+    ).forEach(
+        vehicle => {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                vehicle.id;
+
+            option.textContent =
+                vehicle.name;
+
+            vehicleSelect.appendChild(
+                option
+            );
+
+        }
+    );
+
+
+    /*
+     * If category requires a model but
+     * none exists, show an informational
+     * placeholder.
+     */
+
+    if (
+        categoryObject &&
+        categoryObject.requires_model &&
+        unique.size === 0
+    ) {
+
+        vehicleSelect.innerHTML = `
+            <option value="">
+                No matching models available
+            </option>
+        `;
+
+    }
+
+}
+
+
+/* ============================================================
+   SEATING OPTIONS
+============================================================ */
+
+function updateSeatingOptions() {
+
+    const category =
+        categorySelect.value;
+
+    const energy =
+        energySelect.value;
+
+
+    seatingSelect.innerHTML = `
+        <option value="">
+            Select seats
+        </option>
+    `;
+
+
+    if (!category) {
+        return;
+    }
+
+
+    let filtered =
+        vehicles.filter(
+            vehicle => {
+
+                if (
+                    getCategoryName(
+                        vehicle.category_id
+                    ) !== category
+                ) {
+
+                    return false;
+                }
+
+
+                if (energy) {
+
+                    if (
+                        getEnergyName(
+                            vehicle.energy_source_id
+                        ) !== energy
+                    ) {
+
+                        return false;
                     }
 
                 }
 
+
+                return (
+                    vehicle.seating_capacity !==
+                    null
+                );
+
             }
         );
 
-}
+
+    const seats =
+        [
+            ...new Set(
+                filtered.map(
+                    vehicle =>
+                        Number(
+                            vehicle.seating_capacity
+                        )
+                )
+            )
+        ]
+        .filter(
+            value =>
+                Number.isFinite(value)
+        )
+        .sort(
+            (a,b) =>
+                a - b
+        );
 
 
-createFareChart();
+    seats.forEach(
+        seatsValue => {
 
+            const option =
+                document.createElement(
+                    "option"
+                );
 
-/* =========================================================
-   26. CHART FILTER
-========================================================= */
+            option.value =
+                seatsValue;
 
-const chartFilter =
-    document.getElementById(
-        "chartFilter"
-    );
+            option.textContent =
+                `${seatsValue} seats`;
 
-
-if (chartFilter) {
-
-    chartFilter.addEventListener(
-        "change",
-        () => {
-
-            if (!fareCostChart) return;
-
-
-            const value =
-                chartFilter.value;
-
-
-            if (
-                value === "fuel"
-            ) {
-
-                fareCostChart.data.datasets =
-                    [
-
-                        {
-
-                            label:
-                                "Fuel Cost Index",
-
-                            data: [
-                                100,
-                                104,
-                                108,
-                                105,
-                                115,
-                                128,
-                                132,
-                                137,
-                                141,
-                                145
-                            ],
-
-                            tension: .35,
-
-                            fill: false
-
-                        }
-
-                    ];
-
-            }
-
-
-            else if (
-                value === "fare"
-            ) {
-
-                fareCostChart.data.datasets =
-                    [
-
-                        {
-
-                            label:
-                                "Fare Index",
-
-                            data: [
-                                100,
-                                100,
-                                104,
-                                104,
-                                110,
-                                118,
-                                122,
-                                128,
-                                132,
-                                135
-                            ],
-
-                            tension: .35,
-
-                            fill: false
-
-                        }
-
-                    ];
-
-            }
-
-
-            else {
-
-                fareCostChart.data.datasets =
-                    [
-
-                        {
-
-                            label:
-                                "Fuel Cost Index",
-
-                            data: [
-                                100,
-                                104,
-                                108,
-                                105,
-                                115,
-                                128,
-                                132,
-                                137,
-                                141,
-                                145
-                            ],
-
-                            tension: .35,
-
-                            fill: false
-
-                        },
-
-                        {
-
-                            label:
-                                "Fare Index",
-
-                            data: [
-                                100,
-                                100,
-                                104,
-                                104,
-                                110,
-                                118,
-                                122,
-                                128,
-                                132,
-                                135
-                            ],
-
-                            tension: .35,
-
-                            fill: false
-
-                        }
-
-                    ];
-
-            }
-
-
-            fareCostChart.update();
+            seatingSelect.appendChild(
+                option
+            );
 
         }
     );
@@ -1786,33 +993,687 @@ if (chartFilter) {
 }
 
 
-/* =========================================================
-   27. BACK TO TOP
-========================================================= */
+/* ============================================================
+   DATABASE ID HELPERS
+============================================================ */
 
-const backToTop =
-    document.querySelector(
-        ".back-to-top"
+function getCategoryName(
+    categoryId
+) {
+
+    const category =
+        categories.find(
+            item =>
+                Number(item.id) ===
+                Number(categoryId)
+        );
+
+    return category
+        ? category.name
+        : null;
+}
+
+
+function getEnergyName(
+    energyId
+) {
+
+    const energy =
+        energySources.find(
+            item =>
+                Number(item.id) ===
+                Number(energyId)
+        );
+
+    return energy
+        ? energy.name
+        : null;
+}
+
+
+/* ============================================================
+   FORM
+============================================================ */
+
+function setupForm() {
+
+    fareForm.addEventListener(
+        "submit",
+        handleFareCalculation
     );
 
 
-window.addEventListener(
-    "scroll",
-    () => {
+    resetBtn.addEventListener(
+        "click",
+        resetCalculator
+    );
 
-        if (!backToTop) return;
 
-        if (window.scrollY > 500) {
+    retryBtn.addEventListener(
+        "click",
+        () => {
 
-            backToTop.classList.add(
-                "visible"
+            if (lastCalculation) {
+
+                calculateFare(
+                    lastCalculation
+                );
+
+            } else {
+
+                resultCard.className =
+                    "result-card";
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   CALCULATE FARE
+============================================================ */
+
+async function handleFareCalculation(
+    event
+) {
+
+    event.preventDefault();
+
+
+    const category =
+        categorySelect.value;
+
+    const energy =
+        energySelect.value;
+
+    const distance =
+        Number(
+            distanceInput.value
+        );
+
+    const seating =
+        seatingSelect.value
+            ? Number(
+                seatingSelect.value
+            )
+            : null;
+
+    const vehicleId =
+        vehicleSelect.value
+            ? Number(
+                vehicleSelect.value
+            )
+            : null;
+
+
+    if (!category) {
+
+        showToast(
+            "Please select a vehicle category."
+        );
+
+        return;
+    }
+
+
+    if (!energy) {
+
+        showToast(
+            "Please select the fuel or energy source."
+        );
+
+        return;
+    }
+
+
+    if (
+        !Number.isFinite(distance) ||
+        distance <= 0
+    ) {
+
+        showToast(
+            "Please enter a valid journey distance."
+        );
+
+        distanceInput.focus();
+
+        return;
+    }
+
+
+    const requestData = {
+
+        category:
+            category,
+
+        energy_source:
+            energy,
+
+        distance_km:
+            distance,
+
+        seating_capacity:
+            seating,
+
+        vehicle_id:
+            vehicleId
+
+    };
+
+
+    lastCalculation =
+        requestData;
+
+
+    await calculateFare(
+        requestData
+    );
+
+}
+
+
+/* ============================================================
+   API FARE CALCULATION
+============================================================ */
+
+async function calculateFare(
+    requestData
+) {
+
+    setCalculateLoading(
+        true
+    );
+
+
+    try {
+
+        const data =
+            await apiFetch(
+                "/api/fare/calculate",
+                {
+                    method: "POST",
+
+                    body:
+                        JSON.stringify(
+                            requestData
+                        )
+                }
             );
+
+
+        if (
+            !data ||
+            !data.success ||
+            !data.calculation
+        ) {
+
+            throw new Error(
+                "The API returned an invalid calculation."
+            );
+        }
+
+
+        displayFareResult(
+            data.calculation
+        );
+
+
+        showToast(
+            "Fare calculated successfully."
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Fare calculation error:",
+            error
+        );
+
+        displayFareError(
+            error.message
+        );
+
+    } finally {
+
+        setCalculateLoading(
+            false
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   DISPLAY SUCCESS
+============================================================ */
+
+function displayFareResult(
+    calculation
+) {
+
+    resultCard.className =
+        "result-card show-success";
+
+
+    const fare =
+        Number(
+            calculation.fare
+        );
+
+
+    fareAmount.textContent =
+        Number.isFinite(fare)
+            ? fare.toFixed(2)
+            : "0.00";
+
+
+    resultCategory.textContent =
+        calculation.category ||
+        "—";
+
+
+    resultEnergy.textContent =
+        calculation.energy_source ||
+        "—";
+
+
+    resultDistance.textContent =
+        Number(
+            calculation.distance_km
+        ).toFixed(1);
+
+
+    resultSeats.textContent =
+        calculation.seating_capacity
+            ? calculation.seating_capacity
+            : "—";
+
+
+    calculationMethod.textContent =
+        formatCalculationMethod(
+            calculation.calculation_method
+        );
+
+
+    if (
+        calculation.fare_rule_id
+    ) {
+
+        fareRuleNote.textContent =
+            `Applied fare rule #${calculation.fare_rule_id} from the connected fare database.`;
+
+    } else {
+
+        fareRuleNote.textContent =
+            "Calculated using the system's fallback fare logic.";
+
+    }
+
+
+    /*
+     * Smoothly bring result into view
+     * on smaller screens.
+     */
+
+    if (
+        window.innerWidth < 850
+    ) {
+
+        setTimeout(
+            () => {
+
+                resultCard.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+
+            },
+            100
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   CALCULATION METHOD
+============================================================ */
+
+function formatCalculationMethod(
+    method
+) {
+
+    if (!method) {
+
+        return "Fare calculation";
+    }
+
+
+    const labels = {
+
+        "database_fare_rule":
+            "Database fare rule",
+
+        "fallback_default":
+            "Default fare calculation",
+
+        "slab_calculation":
+            "Fare slab calculation",
+
+        "fuel_adjusted":
+            "Fuel-adjusted calculation"
+
+    };
+
+
+    return (
+        labels[method] ||
+        method
+            .replaceAll(
+                "_",
+                " "
+            )
+            .replace(
+                /\b\w/g,
+                char =>
+                    char.toUpperCase()
+            )
+    );
+
+}
+
+
+/* ============================================================
+   DISPLAY ERROR
+============================================================ */
+
+function displayFareError(
+    message
+) {
+
+    resultCard.className =
+        "result-card show-error";
+
+
+    errorMessage.textContent =
+        message ||
+        "Unable to calculate the fare.";
+}
+
+
+/* ============================================================
+   LOADING STATE
+============================================================ */
+
+function setCalculateLoading(
+    loading
+) {
+
+    calculateBtn.disabled =
+        loading;
+
+
+    if (loading) {
+
+        calculateBtn.classList.add(
+            "loading"
+        );
+
+    } else {
+
+        calculateBtn.classList.remove(
+            "loading"
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   RESET
+============================================================ */
+
+function resetCalculator() {
+
+    fareForm.reset();
+
+    resetDependentFields();
+
+    resultCard.className =
+        "result-card";
+
+    lastCalculation =
+        null;
+
+    distanceInput.value =
+        "";
+
+    window.location.hash =
+        "calculator";
+
+}
+
+
+function resetDependentFields() {
+
+    vehicleSelect.innerHTML = `
+        <option value="">
+            Select vehicle model
+        </option>
+    `;
+
+    seatingSelect.innerHTML = `
+        <option value="">
+            Select seats
+        </option>
+    `;
+
+    vehicleGroup.style.display =
+        "block";
+
+    seatingGroup.style.display =
+        "block";
+
+}
+
+
+/* ============================================================
+   API STATUS
+============================================================ */
+
+async function checkAPIStatus() {
+
+    try {
+
+        const data =
+            await apiFetch(
+                "/api/health"
+            );
+
+
+        if (
+            data.database_connected
+        ) {
+
+            footerStatus.textContent =
+                "API & database online";
+
+        } else if (
+            data.database_configured
+        ) {
+
+            footerStatus.textContent =
+                "API online";
 
         } else {
 
-            backToTop.classList.remove(
-                "visible"
+            footerStatus.textContent =
+                "API online";
+        }
+
+
+    } catch {
+
+        footerStatus.textContent =
+            "API unavailable";
+    }
+
+}
+
+
+/* ============================================================
+   STATISTICS
+============================================================ */
+
+function updateStats() {
+
+    categoryCount.textContent =
+        categories.length ||
+        "5";
+
+
+    energyCount.textContent =
+        energySources.length ||
+        "5";
+
+
+    vehicleCount.textContent =
+        `${vehicles.length || 134}+`;
+
+
+    vehicleCountStat.textContent =
+        vehicles.length ||
+        "134";
+
+}
+
+
+/* ============================================================
+   TOAST
+============================================================ */
+
+let toastTimer = null;
+
+
+function showToast(
+    message
+) {
+
+    toastMessage.textContent =
+        message;
+
+    toast.classList.add(
+        "show"
+    );
+
+
+    clearTimeout(
+        toastTimer
+    );
+
+
+    toastTimer =
+        setTimeout(
+            () => {
+
+                toast.classList.remove(
+                    "show"
+                );
+
+            },
+            3500
+        );
+
+}
+
+
+/* ============================================================
+   REVEAL ANIMATIONS
+============================================================ */
+
+function setupRevealAnimations() {
+
+    const elements =
+        document.querySelectorAll(
+            ".stat-box, .process-card, .principle-card, .about-card, .calculator-card, .result-card"
+        );
+
+
+    elements.forEach(
+        element => {
+
+            element.classList.add(
+                "reveal"
             );
+
+        }
+    );
+
+
+    const observer =
+        new IntersectionObserver(
+            entries => {
+
+                entries.forEach(
+                    entry => {
+
+                        if (
+                            entry.isIntersecting
+                        ) {
+
+                            entry.target.classList.add(
+                                "visible"
+                            );
+
+                            observer.unobserve(
+                                entry.target
+                            );
+
+                        }
+
+                    }
+                );
+
+            },
+            {
+                threshold: .12
+            }
+        );
+
+
+    elements.forEach(
+        element =>
+            observer.observe(
+                element
+            )
+    );
+
+}
+
+
+/* ============================================================
+   INPUT POLISH
+============================================================ */
+
+distanceInput.addEventListener(
+    "input",
+    () => {
+
+        if (
+            Number(
+                distanceInput.value
+            ) > 1000
+        ) {
+
+            distanceInput.value =
+                1000;
 
         }
 
@@ -1820,295 +1681,39 @@ window.addEventListener(
 );
 
 
-if (backToTop) {
-
-    backToTop.addEventListener(
-        "click",
-        () => {
-
-            window.scrollTo({
-
-                top: 0,
-
-                behavior: "smooth"
-
-            });
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   28. VEHICLE CATEGORY INFORMATION
-========================================================= */
-
-function getVehicleInformation(
-    vehicle
-) {
-
-    return vehicleData[vehicle] || null;
-
-}
-
-
-/* =========================================================
-   29. EXAMPLE API-READY FUEL UPDATE
-=========================================================
-
-   When the backend is ready:
-
-   fetch("/api/fuel-prices")
-       .then(response => response.json())
-       .then(data => {
-           updateFuelPrice(
-               "petrol",
-               data.petrol
-           );
-       });
-
-========================================================= */
-
-
-/* =========================================================
-   30. API-READY OPERATING COST MODEL
-========================================================= */
-
-function calculateDetailedOperatingCost(
-    distance,
-    vehicle,
-    subtype,
-    costs = {}
-) {
-
-    const data =
-        vehicleData[vehicle]
-            ?.subtypes[subtype];
-
-    if (!data) return null;
-
-
-    const fuelPrice =
-        costs.fuelPrice ??
-        getCurrentFuelPrice(subtype);
-
-
-    const tyreCostPerKm =
-        costs.tyreCostPerKm ??
-        0;
-
-
-    const engineOilCostPerKm =
-        costs.engineOilCostPerKm ??
-        0;
-
-
-    const serviceCostPerKm =
-        costs.serviceCostPerKm ??
-        0;
-
-
-    const insuranceCostPerKm =
-        costs.insuranceCostPerKm ??
-        0;
-
-
-    const depreciationCostPerKm =
-        costs.depreciationCostPerKm ??
-        0;
-
-
-    const fuelCostPerKm =
-        fuelPrice /
-        data.mileage;
-
-
-    const totalCostPerKm =
-        fuelCostPerKm +
-        tyreCostPerKm +
-        engineOilCostPerKm +
-        serviceCostPerKm +
-        insuranceCostPerKm +
-        depreciationCostPerKm;
-
-
-    const totalCost =
-        totalCostPerKm *
-        distance;
-
-
-    return {
-
-        fuelCostPerKm,
-
-        tyreCostPerKm,
-
-        engineOilCostPerKm,
-
-        serviceCostPerKm,
-
-        insuranceCostPerKm,
-
-        depreciationCostPerKm,
-
-        totalCostPerKm,
-
-        totalCost
-
-    };
-
-}
-
-
-/* =========================================================
-   31. FAIR DRIVER PROFIT MODEL
-========================================================= */
-
-function calculateDriverProfit(
-    fare,
-    operatingCost
-) {
-
-    if (
-        typeof fare !== "number" ||
-        typeof operatingCost !== "number"
-    ) {
-
-        return null;
-
-    }
-
-
-    return Math.max(
-        0,
-        fare - operatingCost
-    );
-
-}
-
-
-/* =========================================================
-   32. GENERAL FARE FORMULA
-=========================================================
-
-   Fare Keralam concept:
-
-       Operating Cost
-       +
-       Fair Driver Margin
-       =
-       Sustainable Fare
-
-   Fuel type should affect operating
-   cost, but the intended driver
-   margin should remain comparable.
-
-========================================================= */
-
-function calculateFairFare(
-    operatingCost,
-    marginPercentage
-) {
-
-    if (
-        operatingCost <= 0
-    ) {
-
-        return 0;
-
-    }
-
-
-    return (
-        operatingCost /
-        (1 - marginPercentage)
-    );
-
-}
-
-
-/* =========================================================
-   33. FARE ROUNDING
-========================================================= */
-
-function roundFare(
-    amount,
-    nearest = 5
-) {
-
-    return (
-        Math.ceil(
-            amount /
-            nearest
-        ) * nearest
-    );
-
-}
-
-
-/* =========================================================
-   34. FINAL PROJECT OBJECT
-========================================================= */
-
-const FareKeralam = {
-
-    version: "1.0",
-
-    vehicleData,
-
-    fuelPrices,
-
-    calculateFare,
-
-    calculateSlabFare,
-
-    calculateOperatingCost,
-
-    calculateDetailedOperatingCost,
-
-    calculateFairFare,
-
-    calculateDriverProfit,
-
-    calculateFuelIndex,
-
-    calculateOperatingCostIndex,
-
-    shouldReviewFare,
-
-    roundFare,
-
-    updateFuelPrice,
-
-    getVehicleInformation
-
-};
-
-
-/* =========================================================
-   35. GLOBAL ACCESS
-========================================================= */
-
-window.FareKeralam =
-    FareKeralam;
-
-
-/* =========================================================
-   36. INITIALISE
-========================================================= */
+/* ============================================================
+   KEYBOARD SHORTCUT
+============================================================ */
 
 document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+    "keydown",
+    event => {
 
-        updateVehicleSubtypes();
+        /*
+         * Press "/" to focus the calculator
+         */
 
-        updateFuelPriceDisplay();
+        if (
+            event.key === "/" &&
+            !["INPUT", "SELECT", "TEXTAREA"]
+                .includes(
+                    document.activeElement.tagName
+                )
+        ) {
 
-        console.log(
-            "Fare Keralam initialized successfully."
-        );
+            event.preventDefault();
+
+            distanceInput.focus();
+
+            document
+                .getElementById(
+                    "calculator"
+                )
+                .scrollIntoView({
+                    behavior: "smooth"
+                });
+
+        }
 
     }
 );
