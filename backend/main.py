@@ -1,21 +1,59 @@
+# ============================================================
+# FARE KERALAM - MAIN API
+# ============================================================
+# FastAPI backend for:
+#   - Vehicle categories
+#   - Energy sources
+#   - Vehicles
+#   - Vehicle options
+#   - Fare calculation
+#   - Health check
+#
+# Designed for:
+#   Supabase PostgreSQL
+#   Render
+# ============================================================
+
 import os
-from typing import Optional
+import math
+from decimal import Decimal, ROUND_HALF_UP
+from typing import Optional, Any
+
+import psycopg2
+import psycopg2.extras
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from supabase import create_client, Client
+from dotenv import load_dotenv
 
 
 # ============================================================
-# APP CONFIGURATION
+# ENVIRONMENT
+# ============================================================
+
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    print("WARNING: DATABASE_URL is not configured.")
+
+
+# ============================================================
+# FASTAPI APP
 # ============================================================
 
 app = FastAPI(
     title="Fare Keralam API",
-    description="Kerala passenger transport fare calculation and revision API",
-    version="1.0.0"
+    description="Kerala passenger transport fare calculation API",
+    version="1.0.0",
 )
+
+
+# ============================================================
+# CORS
+# ============================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,74 +65,142 @@ app.add_middleware(
 
 
 # ============================================================
-# SUPABASE CONFIGURATION
+# DATABASE CONNECTION
 # ============================================================
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
+def get_connection():
+    """
+    Creates a PostgreSQL connection using DATABASE_URL.
+    Works with Supabase PostgreSQL.
+    """
 
-supabase: Optional[Client] = None
-
-if SUPABASE_URL and SUPABASE_KEY:
-    try:
-        supabase = create_client(
-            SUPABASE_URL,
-            SUPABASE_KEY
-        )
-    except Exception:
-        supabase = None
-
-
-# ============================================================
-# MODELS
-# ============================================================
-
-class FareCalculateRequest(BaseModel):
-    category_id: int
-    distance_km: float = Field(gt=0)
-    energy_source_id: Optional[int] = None
-    seating_capacity: Optional[int] = None
-
-
-class FuelPriceRequest(BaseModel):
-    energy_source_id: int
-    price: float = Field(ge=0)
-    effective_from: Optional[str] = None
-    source_id: Optional[int] = None
-    notes: Optional[str] = None
-
-
-# ============================================================
-# BASIC HELPERS
-# ============================================================
-
-def require_database():
-    if supabase is None:
+    if not DATABASE_URL:
         raise HTTPException(
-            status_code=503,
+            status_code=500,
             detail="Database is not configured"
         )
 
-
-def get_category(category_id: int):
-    require_database()
-
-    result = (
-        supabase
-        .table("vehicle_categories")
-        .select("*")
-        .eq("id", category_id)
-        .limit(1)
-        .execute()
-    )
-
-    if not result.data:
-        raise HTTPException(
-            status_code=404,
-            detail="Vehicle category not found"
+    try:
+        return psycopg2.connect(
+            DATABASE_URL,
+            cursor_factory=psycopg2.extras.RealDictCursor
         )
 
-    return result.data[0]
+    except Exception as exc:
+        print("Database connection error:", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to connect to database"
+        )
+
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+def normalize_name(value: Optional[str]) -> str:
+    """
+    Normalizes names so that:
+        Taxi / Motor Cab
+        taxi/motor cab
+        Motor Cab
+        MOTOR CAB
+
+    can be compared safely.
+    """
+
+    if not value:
+        return ""
+
+    value = value.strip().lower()
+
+    replacements = {
+        "/": " ",
+        "-": " ",
+        "_": " ",
+    }
+
+    for old, new in replacements.items():
+        value = value.replace(old, new)
+
+    value = " ".join(value.split())
+
+    return value
+
+
+# ------------------------------------------------------------
+# Category aliases
+# ------------------------------------------------------------
+
+CATEGORY_ALIASES = {
+    "auto": "Auto Rickshaw",
+    "auto rickshaw": "Auto Rickshaw",
+
+    "taxi": "Motor Cab",
+    "motor cab": "Motor Cab",
+    "taxi motor cab": "Motor Cab",
+    "taxi / motor cab": "Motor Cab",
+
+    "maxicab": "Maxicab",
+    "maxi cab": "Maxicab",
+
+    "contract carriage": "Contract Carriage",
+
+    "stage carriage": "Stage Carriage",
+
+    "traveller": "Contract Carriage",
+    "traveler": "Contract Carriage",
+
+    "route bus": "Stage Carriage",
+
+    "tourist bus": "Contract Carriage",
+}
+
+
+def canonical_category_name(category: Optional[str]) -> Optional[str]:
+    """
+    Converts frontend/category aliases into the actual
+    category names stored in the database.
+    """
+
+    if not category:
+        return None
+
+    normalized = normalize_name(category)
+
+    return CATEGORY_ALIASES.get(
+        normalized,
+        category.strip()
+    )
+
+
+# ============================================================
+# GENERIC DATABASE HELPERS
+# ============================================================
+
+def fetch_one(query: str, params=()):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, params)
+            return cursor.fetchone()
+
+    finally:
+        conn.close()
+
+
+def fetch_all(query: str, params=()):
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, params)
+            return cursor.fetchall()
+
+    finally:
+        conn.close()
 
 
 # ============================================================
@@ -107,45 +213,81 @@ def root():
         "success": True,
         "name": "Fare Keralam API",
         "version": "1.0.0",
-        "status": "running"
+        "status": "online",
     }
 
 
 # ============================================================
-# HEALTH CHECK
+# HEALTH
 # ============================================================
 
 @app.get("/api/health")
 def health():
-    database_configured = supabase is not None
+
+    database_configured = bool(DATABASE_URL)
+
+    database_connected = False
+
+    if database_configured:
+        try:
+            conn = get_connection()
+
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+
+            conn.close()
+
+            database_connected = True
+
+        except Exception as exc:
+            print("Health DB error:", exc)
 
     return {
-        "status": "healthy",
-        "database_configured": database_configured
+        "status": "healthy" if database_connected else "degraded",
+        "database_configured": database_configured,
+        "database_connected": database_connected,
     }
 
 
 # ============================================================
-# VEHICLE CATEGORIES
+# CATEGORIES
 # ============================================================
 
 @app.get("/api/categories")
 def get_categories():
-    require_database()
 
-    result = (
-        supabase
-        .table("vehicle_categories")
-        .select("*")
-        .order("id")
-        .execute()
-    )
+    query = """
+        SELECT
+            id,
+            name,
+            description,
+            requires_model,
+            requires_seating_capacity,
+            active,
+            created_at
+        FROM vehicle_categories
+        WHERE active = TRUE
+        ORDER BY id
+    """
 
-    return {
-        "success": True,
-        "count": len(result.data or []),
-        "categories": result.data or []
-    }
+    try:
+        categories = fetch_all(query)
+
+        return {
+            "success": True,
+            "count": len(categories),
+            "categories": categories,
+        }
+
+    except Exception as exc:
+
+        print("Categories error:", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to load vehicle categories"
+        )
 
 
 # ============================================================
@@ -154,21 +296,38 @@ def get_categories():
 
 @app.get("/api/energy-sources")
 def get_energy_sources():
-    require_database()
 
-    result = (
-        supabase
-        .table("energy_sources")
-        .select("*")
-        .order("id")
-        .execute()
-    )
+    query = """
+        SELECT
+            id,
+            name,
+            unit,
+            description,
+            active,
+            created_at
+        FROM energy_sources
+        WHERE active = TRUE
+        ORDER BY id
+    """
 
-    return {
-        "success": True,
-        "count": len(result.data or []),
-        "energy_sources": result.data or []
-    }
+    try:
+
+        energy_sources = fetch_all(query)
+
+        return {
+            "success": True,
+            "count": len(energy_sources),
+            "energy_sources": energy_sources,
+        }
+
+    except Exception as exc:
+
+        print("Energy source error:", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to load energy sources"
+        )
 
 
 # ============================================================
@@ -177,653 +336,1188 @@ def get_energy_sources():
 
 @app.get("/api/vehicles")
 def get_vehicles(
-    category_id: Optional[int] = None,
-    energy_source_id: Optional[int] = None,
-    seating_capacity: Optional[int] = None
+    category: Optional[str] = None,
+    energy: Optional[str] = None,
+    seating_capacity: Optional[int] = None,
 ):
-    require_database()
 
-    query = (
-        supabase
-        .table("vehicles")
-        .select("*")
-        .eq("active", True)
-    )
+    query = """
+        SELECT
+            v.id,
+            v.category_id,
+            v.energy_source_id,
+            v.name,
+            v.seating_capacity,
+            v.efficiency,
+            v.efficiency_unit,
+            v.active,
+            v.created_at
+        FROM vehicles v
+        WHERE v.active = TRUE
+    """
 
-    if category_id is not None:
-        query = query.eq("category_id", category_id)
+    params = []
 
-    if energy_source_id is not None:
-        query = query.eq(
-            "energy_source_id",
-            energy_source_id
-        )
+    # --------------------------------------------------------
+    # Category filter
+    # --------------------------------------------------------
+
+    if category:
+
+        category = canonical_category_name(category)
+
+        query += """
+            AND v.category_id = (
+                SELECT id
+                FROM vehicle_categories
+                WHERE LOWER(name) = LOWER(%s)
+                LIMIT 1
+            )
+        """
+
+        params.append(category)
+
+    # --------------------------------------------------------
+    # Energy filter
+    # --------------------------------------------------------
+
+    if energy:
+
+        query += """
+            AND v.energy_source_id = (
+                SELECT id
+                FROM energy_sources
+                WHERE LOWER(name) = LOWER(%s)
+                LIMIT 1
+            )
+        """
+
+        params.append(energy.strip())
+
+    # --------------------------------------------------------
+    # Seating filter
+    # --------------------------------------------------------
 
     if seating_capacity is not None:
-        query = query.eq(
-            "seating_capacity",
-            seating_capacity
+
+        query += """
+            AND v.seating_capacity = %s
+        """
+
+        params.append(seating_capacity)
+
+    query += """
+        ORDER BY v.id
+    """
+
+    try:
+
+        vehicles = fetch_all(query, params)
+
+        return {
+            "success": True,
+            "count": len(vehicles),
+            "vehicles": vehicles,
+        }
+
+    except Exception as exc:
+
+        print("Vehicles error:", exc)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to load vehicles"
         )
-
-    result = query.order("id").execute()
-
-    return {
-        "success": True,
-        "count": len(result.data or []),
-        "vehicles": result.data or []
-    }
 
 
 # ============================================================
 # VEHICLE OPTIONS
-#
-# Government category
-#       ↓
-# Fuel / energy
-#       ↓
-# Seating capacity
-#
-# This endpoint derives the options directly from vehicles.
 # ============================================================
 
 @app.get("/api/vehicle-options")
 def get_vehicle_options():
-    require_database()
+
+    query = """
+        SELECT
+            vc.name AS category,
+            es.name AS energy,
+            v.seating_capacity
+        FROM vehicles v
+        INNER JOIN vehicle_categories vc
+            ON vc.id = v.category_id
+        INNER JOIN energy_sources es
+            ON es.id = v.energy_source_id
+        WHERE v.active = TRUE
+        ORDER BY
+            vc.id,
+            es.id,
+            v.seating_capacity
+    """
 
     try:
-        result = (
-            supabase
-            .table("vehicles")
-            .select(
-                """
-                id,
-                name,
-                seating_capacity,
-                category_id,
-                energy_source_id,
-                vehicle_categories!inner(id,name),
-                energy_sources!inner(id,name)
-                """
-            )
-            .eq("active", True)
-            .execute()
-        )
 
-        categories = {}
+        rows = fetch_all(query)
 
-        for vehicle in result.data or []:
+        result = {}
 
-            category_data = vehicle.get(
-                "vehicle_categories"
-            )
+        for row in rows:
 
-            energy_data = vehicle.get(
-                "energy_sources"
-            )
+            category = row["category"]
+            energy = row["energy"]
+            seating = row["seating_capacity"]
 
-            if not category_data or not energy_data:
-                continue
+            if category not in result:
+                result[category] = {}
 
-            category_name = category_data.get("name")
-            energy_name = energy_data.get("name")
-
-            if not category_name or not energy_name:
-                continue
-
-            if category_name not in categories:
-                categories[category_name] = {}
-
-            if energy_name not in categories[category_name]:
-                categories[category_name][energy_name] = []
-
-            seating = vehicle.get("seating_capacity")
+            if energy not in result[category]:
+                result[category][energy] = []
 
             if seating is not None:
-                if seating not in categories[category_name][energy_name]:
-                    categories[category_name][energy_name].append(
-                        seating
-                    )
+                if seating not in result[category][energy]:
+                    result[category][energy].append(seating)
 
-        # Sort seating capacities
+        # ----------------------------------------------------
+        # Make sure every known energy source exists
+        # ----------------------------------------------------
+
+        energy_names = [
+            "Petrol",
+            "Diesel",
+            "CNG",
+            "Electricity",
+            "Hybrid",
+        ]
+
+        categories = [
+            "Auto Rickshaw",
+            "Motor Cab",
+            "Maxicab",
+            "Contract Carriage",
+            "Stage Carriage",
+        ]
+
         for category in categories:
-            for energy in categories[category]:
-                categories[category][energy].sort()
+
+            if category not in result:
+                result[category] = {}
+
+            for energy in energy_names:
+
+                if energy not in result[category]:
+                    result[category][energy] = []
 
         return {
             "success": True,
-            "categories": categories
+            "categories": result,
         }
 
-    except Exception as e:
+    except Exception as exc:
+
+        print("Vehicle options error:", exc)
+
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to build vehicle options: {str(e)}"
+            detail="Unable to load vehicle options"
         )
 
 
 # ============================================================
-# VEHICLES BY CATEGORY
+# FARE CALCULATION REQUEST
 # ============================================================
 
-@app.get("/api/categories/{category_id}/vehicles")
-def get_category_vehicles(category_id: int):
-    require_database()
+class FareCalculationRequest(BaseModel):
 
-    category = get_category(category_id)
-
-    result = (
-        supabase
-        .table("vehicles")
-        .select("*")
-        .eq("category_id", category_id)
-        .eq("active", True)
-        .order("seating_capacity")
-        .order("id")
-        .execute()
+    category: str = Field(
+        ...,
+        description="Vehicle category"
     )
 
-    return {
-        "success": True,
-        "category": category,
-        "count": len(result.data or []),
-        "vehicles": result.data or []
-    }
+    energy_source: Optional[str] = Field(
+        None,
+        description="Petrol, Diesel, CNG, Electricity or Hybrid"
+    )
+
+    distance_km: float = Field(
+        ...,
+        gt=0,
+        description="Journey distance in kilometres"
+    )
+
+    seating_capacity: Optional[int] = Field(
+        None,
+        gt=0
+    )
+
+    vehicle_id: Optional[int] = None
 
 
 # ============================================================
-# FARE RULES
+# ROUNDING
 # ============================================================
 
-@app.get("/api/fare-rules")
-def get_fare_rules(
-    category_id: Optional[int] = None,
-    energy_source_id: Optional[int] = None,
-    status: Optional[str] = None
+def money(value: float) -> float:
+
+    amount = Decimal(str(value))
+
+    rounded = amount.quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP
+    )
+
+    return float(rounded)
+
+
+# ============================================================
+# FIND CATEGORY
+# ============================================================
+
+def find_category(category_name: str):
+
+    canonical = canonical_category_name(category_name)
+
+    query = """
+        SELECT
+            id,
+            name,
+            description,
+            requires_model,
+            requires_seating_capacity,
+            active
+        FROM vehicle_categories
+        WHERE active = TRUE
+          AND LOWER(name) = LOWER(%s)
+        LIMIT 1
+    """
+
+    return fetch_one(
+        query,
+        (canonical,)
+    )
+
+
+# ============================================================
+# FIND ENERGY SOURCE
+# ============================================================
+
+def find_energy_source(energy_name: Optional[str]):
+
+    if not energy_name:
+        return None
+
+    query = """
+        SELECT
+            id,
+            name,
+            unit
+        FROM energy_sources
+        WHERE active = TRUE
+          AND LOWER(name) = LOWER(%s)
+        LIMIT 1
+    """
+
+    return fetch_one(
+        query,
+        (energy_name.strip(),)
+    )
+
+
+# ============================================================
+# FIND VEHICLE
+# ============================================================
+
+def find_vehicle(
+    category_id: int,
+    energy_source_id: Optional[int],
+    seating_capacity: Optional[int],
+    vehicle_id: Optional[int],
 ):
-    require_database()
 
-    query = (
-        supabase
-        .table("fare_rules")
-        .select("*")
-    )
+    # --------------------------------------------------------
+    # Direct vehicle ID
+    # --------------------------------------------------------
 
-    if category_id is not None:
-        query = query.eq(
-            "category_id",
-            category_id
+    if vehicle_id is not None:
+
+        query = """
+            SELECT
+                id,
+                category_id,
+                energy_source_id,
+                name,
+                seating_capacity,
+                efficiency,
+                efficiency_unit
+            FROM vehicles
+            WHERE id = %s
+              AND active = TRUE
+            LIMIT 1
+        """
+
+        return fetch_one(
+            query,
+            (vehicle_id,)
         )
+
+    # --------------------------------------------------------
+    # Match category + energy + seating
+    # --------------------------------------------------------
+
+    if seating_capacity is not None:
+
+        query = """
+            SELECT
+                id,
+                category_id,
+                energy_source_id,
+                name,
+                seating_capacity,
+                efficiency,
+                efficiency_unit
+            FROM vehicles
+            WHERE category_id = %s
+              AND active = TRUE
+              AND seating_capacity = %s
+        """
+
+        params = [
+            category_id,
+            seating_capacity,
+        ]
+
+        if energy_source_id is not None:
+
+            query += """
+                AND energy_source_id = %s
+            """
+
+            params.append(energy_source_id)
+
+        query += """
+            ORDER BY id
+            LIMIT 1
+        """
+
+        return fetch_one(
+            query,
+            params
+        )
+
+    # --------------------------------------------------------
+    # Match category + energy
+    # --------------------------------------------------------
+
+    query = """
+        SELECT
+            id,
+            category_id,
+            energy_source_id,
+            name,
+            seating_capacity,
+            efficiency,
+            efficiency_unit
+        FROM vehicles
+        WHERE category_id = %s
+          AND active = TRUE
+    """
+
+    params = [category_id]
 
     if energy_source_id is not None:
-        query = query.eq(
-            "energy_source_id",
-            energy_source_id
-        )
 
-    if status is not None:
-        query = query.eq(
-            "status",
-            status
-        )
+        query += """
+            AND energy_source_id = %s
+        """
 
-    result = query.order("id").execute()
+        params.append(energy_source_id)
 
-    return {
-        "success": True,
-        "count": len(result.data or []),
-        "fare_rules": result.data or []
-    }
+    query += """
+        ORDER BY id
+        LIMIT 1
+    """
+
+    return fetch_one(
+        query,
+        params
+    )
 
 
 # ============================================================
-# FARE SLABS
+# FARE RULE LOOKUP
 # ============================================================
 
-@app.get("/api/fare-slabs")
-def get_fare_slabs(
-    fare_rule_id: Optional[int] = None
+def find_fare_rule(
+    category_id: int,
+    energy_source_id: Optional[int],
+    seating_capacity: Optional[int],
 ):
-    require_database()
+    """
+    Attempts to locate a fare rule.
 
-    query = (
-        supabase
-        .table("fare_slabs")
-        .select("*")
-    )
+    The function first tries a category + energy specific rule.
 
-    if fare_rule_id is not None:
-        query = query.eq(
-            "fare_rule_id",
-            fare_rule_id
+    If no energy-specific rule exists, it falls back to a
+    category-only rule.
+
+    This allows government-approved/base fare rules to remain
+    independent from fuel-cost adjustments.
+    """
+
+    # --------------------------------------------------------
+    # First: category + energy
+    # --------------------------------------------------------
+
+    if energy_source_id is not None:
+
+        query = """
+            SELECT *
+            FROM fare_rules
+            WHERE vehicle_category_id = %s
+              AND energy_source_id = %s
+            ORDER BY id DESC
+            LIMIT 1
+        """
+
+        try:
+
+            rule = fetch_one(
+                query,
+                (
+                    category_id,
+                    energy_source_id,
+                )
+            )
+
+            if rule:
+                return rule
+
+        except Exception as exc:
+
+            print(
+                "Energy-specific fare rule lookup failed:",
+                exc
+            )
+
+    # --------------------------------------------------------
+    # Second: category only
+    # --------------------------------------------------------
+
+    query = """
+        SELECT *
+        FROM fare_rules
+        WHERE vehicle_category_id = %s
+        ORDER BY id DESC
+        LIMIT 1
+    """
+
+    try:
+
+        return fetch_one(
+            query,
+            (category_id,)
         )
 
-    result = (
-        query
-        .order("fare_rule_id")
-        .order("from_km")
-        .execute()
-    )
+    except Exception as exc:
 
-    return {
-        "success": True,
-        "count": len(result.data or []),
-        "fare_slabs": result.data or []
-    }
+        print(
+            "Category fare rule lookup failed:",
+            exc
+        )
+
+        return None
 
 
 # ============================================================
-# FARE CALCULATION
+# FARE SLAB LOOKUP
+# ============================================================
+
+def find_fare_slabs(fare_rule_id: int):
+
+    """
+    Reads slabs belonging to a fare rule.
+
+    Expected logical structure:
+
+        fare_slabs
+        ----------
+        id
+        fare_rule_id
+        from_km
+        to_km
+        rate_per_km
+        fixed_fare
+
+    The function gracefully returns an empty list if the
+    table/columns are not yet available.
+    """
+
+    query = """
+        SELECT *
+        FROM fare_slabs
+        WHERE fare_rule_id = %s
+        ORDER BY
+            COALESCE(from_km, 0),
+            id
+    """
+
+    try:
+
+        return fetch_all(
+            query,
+            (fare_rule_id,)
+        )
+
+    except Exception as exc:
+
+        print(
+            "Fare slab lookup failed:",
+            exc
+        )
+
+        return []
+
+
+# ============================================================
+# SLAB CALCULATION
+# ============================================================
+
+def calculate_from_slabs(
+    distance_km: float,
+    slabs,
+):
+    """
+    Calculates fare progressively through distance slabs.
+
+    Supported possible column names:
+
+        from_km
+        to_km
+        rate_per_km
+        per_km_rate
+        rate
+        fixed_fare
+        amount
+    """
+
+    if not slabs:
+        return None
+
+    total = 0.0
+
+    remaining = distance_km
+
+    for slab in slabs:
+
+        from_km = slab.get("from_km")
+
+        to_km = slab.get("to_km")
+
+        rate = (
+            slab.get("rate_per_km")
+            if slab.get("rate_per_km") is not None
+            else slab.get("per_km_rate")
+        )
+
+        if rate is None:
+            rate = slab.get("rate")
+
+        fixed_fare = slab.get("fixed_fare")
+
+        if fixed_fare is None:
+            fixed_fare = slab.get("amount")
+
+        # ----------------------------------------------------
+        # Fixed fare slab
+        # ----------------------------------------------------
+
+        if fixed_fare is not None:
+
+            if (
+                to_km is None
+                or distance_km <= float(to_km)
+            ):
+
+                return money(float(fixed_fare))
+
+        # ----------------------------------------------------
+        # Rate-based slab
+        # ----------------------------------------------------
+
+        if rate is None:
+            continue
+
+        rate = float(rate)
+
+        start = (
+            float(from_km)
+            if from_km is not None
+            else 0.0
+        )
+
+        if to_km is None:
+
+            end = distance_km
+
+        else:
+
+            end = min(
+                distance_km,
+                float(to_km)
+            )
+
+        if end > start:
+
+            kilometres = end - start
+
+            total += kilometres * rate
+
+        if distance_km <= end:
+            break
+
+    return money(total)
+
+
+# ============================================================
+# DEFAULT FARE CALCULATION
+# ============================================================
+
+def calculate_default_fare(
+    category_name: str,
+    distance_km: float,
+):
+    """
+    Safe fallback.
+
+    IMPORTANT:
+    These values are not claimed to be current Kerala
+    government fares. They are only used when no fare rule
+    exists in the database.
+
+    Replace them with the actual approved fare data before
+    production use.
+    """
+
+    category = canonical_category_name(category_name)
+
+    defaults = {
+
+        "Auto Rickshaw": {
+            "base_fare": 30.0,
+            "base_distance": 1.5,
+            "per_km": 15.0,
+        },
+
+        "Motor Cab": {
+            "base_fare": 100.0,
+            "base_distance": 2.0,
+            "per_km": 18.0,
+        },
+
+        "Maxicab": {
+            "base_fare": 150.0,
+            "base_distance": 2.0,
+            "per_km": 25.0,
+        },
+
+        "Contract Carriage": {
+            "base_fare": 200.0,
+            "base_distance": 2.0,
+            "per_km": 30.0,
+        },
+
+        "Stage Carriage": {
+            "base_fare": 20.0,
+            "base_distance": 1.0,
+            "per_km": 5.0,
+        },
+    }
+
+    rule = defaults.get(category)
+
+    if not rule:
+        return None
+
+    if distance_km <= rule["base_distance"]:
+
+        return money(
+            rule["base_fare"]
+        )
+
+    extra_distance = (
+        distance_km
+        - rule["base_distance"]
+    )
+
+    fare = (
+        rule["base_fare"]
+        + extra_distance * rule["per_km"]
+    )
+
+    return money(fare)
+
+
+# ============================================================
+# MAIN FARE CALCULATOR
 # ============================================================
 
 @app.post("/api/fare/calculate")
-def calculate_fare(request: FareCalculateRequest):
-    require_database()
-
-    category = get_category(request.category_id)
+def calculate_fare(
+    request: FareCalculationRequest
+):
 
     # --------------------------------------------------------
-    # Find applicable fare rules
+    # Validate distance
     # --------------------------------------------------------
 
-    query = (
-        supabase
-        .table("fare_rules")
-        .select("*")
-        .eq("category_id", request.category_id)
-        .eq("status", "active")
-    )
+    if request.distance_km <= 0:
 
-    if request.energy_source_id is not None:
-        query = query.or_(
-            f"energy_source_id.eq.{request.energy_source_id},"
-            "energy_source_id.is.null"
+        raise HTTPException(
+            status_code=400,
+            detail="Distance must be greater than zero"
         )
 
-    rules_result = query.order("id").execute()
+    # --------------------------------------------------------
+    # Resolve category
+    # --------------------------------------------------------
 
-    rules = rules_result.data or []
+    category = find_category(
+        request.category
+    )
 
-    if not rules:
+    if not category:
+
+        # IMPORTANT FIX:
+        # Previously this returned:
+        #
+        #   Vehicle category not found
+        #
+        # when the frontend sent:
+        #
+        #   Taxi / Motor Cab
+        #
+        # while DB contained:
+        #
+        #   Motor Cab
+        #
+        canonical = canonical_category_name(
+            request.category
+        )
+
         raise HTTPException(
             status_code=404,
-            detail="No active fare rule found for this vehicle category"
+            detail={
+                "message": "Vehicle category not found",
+                "requested": request.category,
+                "normalized": canonical,
+            }
         )
 
+    category_id = category["id"]
+
+    category_name = category["name"]
+
     # --------------------------------------------------------
-    # Select first applicable rule
+    # Resolve energy
     # --------------------------------------------------------
 
-    rule = None
+    energy = find_energy_source(
+        request.energy_source
+    )
 
-    for candidate in rules:
+    if request.energy_source and not energy:
 
-        minimum_distance = float(
-            candidate.get("minimum_distance_km") or 0
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "message": "Energy source not found",
+                "requested": request.energy_source,
+            }
         )
 
-        if request.distance_km >= minimum_distance:
-            rule = candidate
-            break
-
-    if rule is None:
-        rule = rules[0]
-
-    fare_rule_id = rule["id"]
-
-    minimum_fare = float(
-        rule["minimum_fare"]
-    )
-
-    minimum_distance = float(
-        rule["minimum_distance_km"]
+    energy_id = (
+        energy["id"]
+        if energy
+        else None
     )
 
     # --------------------------------------------------------
-    # Get slabs
+    # Resolve vehicle
     # --------------------------------------------------------
 
-    slabs_result = (
-        supabase
-        .table("fare_slabs")
-        .select("*")
-        .eq("fare_rule_id", fare_rule_id)
-        .order("from_km")
-        .execute()
+    vehicle = find_vehicle(
+        category_id=category_id,
+        energy_source_id=energy_id,
+        seating_capacity=request.seating_capacity,
+        vehicle_id=request.vehicle_id,
     )
 
-    slabs = slabs_result.data or []
-
-    # --------------------------------------------------------
-    # Calculate base fare
+    # Vehicle is optional for simple category-based
+    # calculations. Therefore we don't fail here.
     # --------------------------------------------------------
 
-    distance = request.distance_km
+    # --------------------------------------------------------
+    # Find fare rule
+    # --------------------------------------------------------
 
-    if distance <= minimum_distance:
-        base_fare = minimum_fare
+    fare_rule = find_fare_rule(
+        category_id=category_id,
+        energy_source_id=energy_id,
+        seating_capacity=request.seating_capacity,
+    )
 
-    else:
-        base_fare = minimum_fare
+    fare = None
 
-        remaining_distance = distance - minimum_distance
+    calculation_method = None
 
-        for slab in slabs:
+    fare_rule_id = None
 
-            from_km = float(
-                slab.get("from_km") or 0
+    # --------------------------------------------------------
+    # Use database fare rule
+    # --------------------------------------------------------
+
+    if fare_rule:
+
+        fare_rule_id = fare_rule.get("id")
+
+        slabs = []
+
+        if fare_rule_id:
+
+            slabs = find_fare_slabs(
+                fare_rule_id
             )
 
-            to_km = slab.get("to_km")
+        if slabs:
 
-            rate = float(
-                slab.get("rate_per_km") or 0
+            fare = calculate_from_slabs(
+                request.distance_km,
+                slabs
             )
 
-            if to_km is None:
+            if fare is not None:
+                calculation_method = "fare_slabs"
 
-                if distance > from_km:
-                    slab_distance = distance - max(
-                        from_km,
-                        minimum_distance
-                    )
+        # ----------------------------------------------------
+        # Try common fare-rule fields
+        # ----------------------------------------------------
 
-                    if slab_distance > 0:
-                        base_fare += (
-                            slab_distance * rate
-                        )
+        if fare is None:
 
-                    remaining_distance = 0
-
-                break
-
-            to_km = float(to_km)
-
-            if distance <= from_km:
-                continue
-
-            slab_start = max(
-                from_km,
-                minimum_distance
+            base_fare = (
+                fare_rule.get("base_fare")
+                if fare_rule.get("base_fare") is not None
+                else fare_rule.get("minimum_fare")
             )
 
-            slab_end = min(
-                distance,
-                to_km
+            if base_fare is None:
+                base_fare = fare_rule.get("min_fare")
+
+            base_distance = (
+                fare_rule.get("base_distance_km")
+                if fare_rule.get("base_distance_km") is not None
+                else fare_rule.get("base_distance")
             )
 
-            slab_distance = slab_end - slab_start
+            per_km = (
+                fare_rule.get("per_km_rate")
+                if fare_rule.get("per_km_rate") is not None
+                else fare_rule.get("rate_per_km")
+            )
 
-            if slab_distance > 0:
-                base_fare += (
-                    slab_distance * rate
+            if per_km is None:
+                per_km = fare_rule.get("per_km")
+
+            if (
+                base_fare is not None
+                and base_distance is not None
+                and per_km is not None
+            ):
+
+                base_fare = float(base_fare)
+
+                base_distance = float(
+                    base_distance
                 )
 
-            remaining_distance -= max(
-                0,
-                slab_distance
+                per_km = float(per_km)
+
+                if request.distance_km <= base_distance:
+
+                    fare = base_fare
+
+                else:
+
+                    extra_distance = (
+                        request.distance_km
+                        - base_distance
+                    )
+
+                    fare = (
+                        base_fare
+                        + extra_distance * per_km
+                    )
+
+                fare = money(fare)
+
+                calculation_method = (
+                    "fare_rule"
+                )
+
+    # --------------------------------------------------------
+    # Fallback
+    # --------------------------------------------------------
+
+    if fare is None:
+
+        fare = calculate_default_fare(
+            category_name,
+            request.distance_km,
+        )
+
+        if fare is not None:
+
+            calculation_method = (
+                "fallback_default"
             )
 
-            if distance <= to_km:
-                break
-
     # --------------------------------------------------------
-    # Round final base fare
+    # No fare available
     # --------------------------------------------------------
 
-    base_fare = round(
-        base_fare,
-        2
-    )
+    if fare is None:
+
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": (
+                    "No fare rule is configured "
+                    "for this vehicle category"
+                ),
+                "category": category_name,
+                "energy_source": (
+                    energy["name"]
+                    if energy
+                    else None
+                ),
+                "distance_km": request.distance_km,
+            }
+        )
+
+    # --------------------------------------------------------
+    # Return result
+    # --------------------------------------------------------
 
     return {
         "success": True,
-        "category": category.get("name"),
-        "category_id": request.category_id,
-        "energy_source_id": request.energy_source_id,
-        "seating_capacity": request.seating_capacity,
-        "distance_km": request.distance_km,
-        "fare_rule_id": fare_rule_id,
-        "minimum_fare": minimum_fare,
-        "minimum_distance_km": minimum_distance,
-        "base_fare": base_fare,
-        "final_fare": base_fare,
-        "fare_revision_applied": False,
-        "message": "Fare calculated using the active government fare rule."
-    }
 
+        "calculation": {
+            "category": category_name,
 
-# ============================================================
-# CURRENT FUEL PRICES
-# ============================================================
+            "energy_source": (
+                energy["name"]
+                if energy
+                else None
+            ),
 
-@app.get("/api/fuel/current")
-def get_current_fuel_prices():
-    require_database()
+            "distance_km": request.distance_km,
 
-    result = (
-        supabase
-        .table("current_fuel_prices")
-        .select("*")
-        .execute()
-    )
+            "seating_capacity": (
+                request.seating_capacity
+            ),
 
-    return {
-        "success": True,
-        "count": len(result.data or []),
-        "prices": result.data or []
-    }
+            "vehicle": (
+                {
+                    "id": vehicle["id"],
+                    "name": vehicle["name"],
+                    "seating_capacity":
+                        vehicle["seating_capacity"],
+                }
+                if vehicle
+                else None
+            ),
 
+            "fare": fare,
 
-# ============================================================
-# FUEL PRICE SLABS
-# ============================================================
+            "currency": "INR",
 
-@app.get("/api/fuel/slabs")
-def get_fuel_price_slabs(
-    energy_source_id: Optional[int] = None
-):
-    require_database()
+            "calculation_method":
+                calculation_method,
 
-    query = (
-        supabase
-        .table("fuel_price_slabs")
-        .select("*")
-    )
-
-    if energy_source_id is not None:
-        query = query.eq(
-            "energy_source_id",
-            energy_source_id
-        )
-
-    result = query.order("energy_source_id").execute()
-
-    return {
-        "success": True,
-        "count": len(result.data or []),
-        "slabs": result.data or []
-    }
-
-
-# ============================================================
-# FARE REVISIONS
-# ============================================================
-
-@app.get("/api/fare-revisions")
-def get_fare_revisions(
-    fare_rule_id: Optional[int] = None
-):
-    require_database()
-
-    query = (
-        supabase
-        .table("fare_revisions")
-        .select("*")
-    )
-
-    if fare_rule_id is not None:
-        query = query.eq(
-            "fare_rule_id",
-            fare_rule_id
-        )
-
-    result = query.order(
-        "id",
-        desc=True
-    ).execute()
-
-    return {
-        "success": True,
-        "count": len(result.data or []),
-        "revisions": result.data or []
-    }
-
-
-# ============================================================
-# INSERT / UPDATE CURRENT FUEL PRICE
-# ============================================================
-
-@app.post("/api/fuel/current")
-def update_current_fuel_price(
-    request: FuelPriceRequest
-):
-    require_database()
-
-    # Check whether a current price already exists
-    existing = (
-        supabase
-        .table("current_fuel_prices")
-        .select("*")
-        .eq(
-            "energy_source_id",
-            request.energy_source_id
-        )
-        .limit(1)
-        .execute()
-    )
-
-    payload = {
-        "energy_source_id": request.energy_source_id,
-        "price": request.price
-    }
-
-    if request.effective_from is not None:
-        payload["effective_from"] = (
-            request.effective_from
-        )
-
-    if request.source_id is not None:
-        payload["source_id"] = request.source_id
-
-    if request.notes is not None:
-        payload["notes"] = request.notes
-
-    if existing.data:
-
-        row_id = existing.data[0]["id"]
-
-        result = (
-            supabase
-            .table("current_fuel_prices")
-            .update(payload)
-            .eq("id", row_id)
-            .execute()
-        )
-
-        return {
-            "success": True,
-            "action": "updated",
-            "price": result.data
+            "fare_rule_id":
+                fare_rule_id,
         }
-
-    result = (
-        supabase
-        .table("current_fuel_prices")
-        .insert(payload)
-        .execute()
-    )
-
-    return {
-        "success": True,
-        "action": "created",
-        "price": result.data
     }
 
 
 # ============================================================
-# DATABASE STATUS
+# SIMPLE GET FARE ENDPOINT
+# ============================================================
+# Useful for testing directly in browser.
+#
+# Example:
+# /api/fare?category=Motor%20Cab&energy_source=Petrol&distance_km=20
 # ============================================================
 
-@app.get("/api/status")
-def database_status():
-    require_database()
+@app.get("/api/fare")
+def get_fare(
+    category: str,
+    distance_km: float,
+    energy_source: Optional[str] = None,
+    seating_capacity: Optional[int] = None,
+):
+
+    request = FareCalculationRequest(
+        category=category,
+        energy_source=energy_source,
+        distance_km=distance_km,
+        seating_capacity=seating_capacity,
+    )
+
+    return calculate_fare(request)
+
+
+# ============================================================
+# DATABASE DIAGNOSTIC
+# ============================================================
+
+@app.get("/api/debug/category")
+def debug_category(
+    category: str
+):
+
+    canonical = canonical_category_name(
+        category
+    )
+
+    row = find_category(
+        category
+    )
+
+    return {
+        "success": True,
+        "requested": category,
+        "normalized": normalize_name(category),
+        "canonical": canonical,
+        "database_match": row,
+    }
+
+
+# ============================================================
+# DATABASE SUMMARY
+# ============================================================
+
+@app.get("/api/debug/database")
+def database_summary():
+
+    result = {}
+
+    tables = [
+        "vehicle_categories",
+        "energy_sources",
+        "vehicles",
+        "fare_rules",
+        "fare_slabs",
+        "cost_data",
+        "price_history",
+    ]
+
+    conn = get_connection()
 
     try:
-        categories = (
-            supabase
-            .table("vehicle_categories")
-            .select("id")
-            .execute()
-        )
 
-        vehicles = (
-            supabase
-            .table("vehicles")
-            .select("id")
-            .execute()
-        )
+        with conn.cursor() as cursor:
 
-        fare_rules = (
-            supabase
-            .table("fare_rules")
-            .select("id")
-            .execute()
-        )
+            for table in tables:
+
+                try:
+
+                    cursor.execute(
+                        f"""
+                        SELECT COUNT(*) AS count
+                        FROM {table}
+                        """
+                    )
+
+                    row = cursor.fetchone()
+
+                    result[table] = row["count"]
+
+                except Exception as exc:
+
+                    conn.rollback()
+
+                    result[table] = {
+                        "error": str(exc)
+                    }
 
         return {
             "success": True,
-            "database": "connected",
-            "vehicle_categories": len(
-                categories.data or []
-            ),
-            "vehicles": len(
-                vehicles.data or []
-            ),
-            "fare_rules": len(
-                fare_rules.data or []
+            "tables": result,
+        }
+
+    finally:
+
+        conn.close()
+
+
+# ============================================================
+# STARTUP
+# ============================================================
+
+@app.on_event("startup")
+def startup_event():
+
+    print("=" * 60)
+    print("FARE KERALAM API STARTING")
+    print("=" * 60)
+
+    if DATABASE_URL:
+
+        print("Database: CONFIGURED")
+
+        try:
+
+            conn = psycopg2.connect(
+                DATABASE_URL
             )
-        }
 
-    except Exception as e:
+            conn.close()
 
-        return {
-            "success": False,
-            "database": "error",
-            "error": str(e)
-        }
+            print("Database connection: OK")
+
+        except Exception as exc:
+
+            print(
+                "Database connection failed:",
+                exc
+            )
+
+    else:
+
+        print(
+            "Database: NOT CONFIGURED"
+        )
+
+    print("=" * 60)
 
 
 # ============================================================
-# ERROR HANDLER
+# RENDER ENTRY POINT
 # ============================================================
 
-@app.get("/api")
-def api_root():
-    return {
-        "success": True,
-        "message": "Fare Keralam API",
-        "endpoints": {
-            "health": "/api/health",
-            "categories": "/api/categories",
-            "energy_sources": "/api/energy-sources",
-            "vehicles": "/api/vehicles",
-            "vehicle_options": "/api/vehicle-options",
-            "fare_rules": "/api/fare-rules",
-            "fare_slabs": "/api/fare-slabs",
-            "fare_calculate": "/api/fare/calculate",
-            "fuel_current": "/api/fuel/current",
-            "fuel_slabs": "/api/fuel/slabs",
-            "fare_revisions": "/api/fare-revisions",
-            "status": "/api/status"
-        }
-    }
+if __name__ == "__main__":
+
+    import uvicorn
+
+    port = int(
+        os.getenv(
+            "PORT",
+            "8000"
+        )
+    )
+
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=False,
+    )
